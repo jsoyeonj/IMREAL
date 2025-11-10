@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 
 export default function Home() {
   const router = useRouter();
-  const [selectedCard, setSelectedCard] = useState(null); // pressedCard → selectedCard
+  const [selectedCard, setSelectedCard] = useState(null);
 
   const cards = [
     { 
@@ -13,6 +13,7 @@ export default function Home() {
       title: 'DeepFake 탐지', 
       subtitle: '이미지로부터 탐지',
       icon: 'eye-outline',
+      route: '/deepfake/detection',  // ← 추가!
     },
     { 
       id: 2, 
@@ -39,6 +40,15 @@ export default function Home() {
     { id: 2, status: 'danger', title: '수상한 딥페이크', subtitle: '자세히 보기', date: '2025.09.13', time: '16:05' },
     { id: 3, status: 'danger', title: '수상한 딥페이크', subtitle: '자세히 보기', date: '2025.09.13', time: '16:05' },
   ];
+
+  // ← 이 함수 추가!
+  const handleCardPress = (card) => {
+    setSelectedCard(card.id);
+    if (card.route) {
+      console.log('이동:', card.route);  // 디버그용
+      router.push(card.route);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -68,7 +78,7 @@ export default function Home() {
                   styles.card,
                   { backgroundColor: isSelected ? '#26C6DA' : '#FFFFFF' }
                 ]}
-                onPress={() => setSelectedCard(card.id)}
+                onPress={() => handleCardPress(card)}  // ← 수정!
                 activeOpacity={0.7}
               >
                 <Ionicons 

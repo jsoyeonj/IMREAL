@@ -27,13 +27,14 @@ export default function Home() {
       title: '워터마크 추가하기', 
       subtitle: '보이지 않는 워터마크',
       icon: 'shield-checkmark-outline',
-      route: '/watermark/add-watermark',  // ⭐ 추가!
+      route: '/watermark/add-watermark',
     },
     { 
       id: 4, 
       title: '딥페이크 알아보기', 
       subtitle: '딥페이크 최신 뉴스',
       icon: 'newspaper-outline',
+      route: '/news/news-list',
     },
   ];
 
@@ -51,6 +52,11 @@ export default function Home() {
     }
   };
 
+  const handleLogout = () => {
+    console.log('로그아웃');
+    router.replace('/login');
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -62,8 +68,8 @@ export default function Home() {
               <Text style={styles.userName}>다영 김</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.addButton}>
-            <Ionicons name="add" size={24} color="#FFFFFF" />
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutText}>LogOut</Text>
           </TouchableOpacity>
         </View>
 
@@ -156,6 +162,24 @@ const styles = StyleSheet.create({
   welcomeText: { fontSize: 14, color: '#999' },
   userName: { fontSize: 18, fontWeight: '700', color: '#333' },
   addButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#2196F3', justifyContent: 'center', alignItems: 'center' },
+  logoutButton: { 
+    paddingHorizontal: 20, 
+    paddingVertical: 10, 
+    borderRadius: 20, 
+    backgroundColor: '#FF6B6B', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  logoutText: { 
+    fontSize: 15, 
+    fontWeight: '600', 
+    color: '#FFFFFF',
+  },
   cardsContainer: { flexDirection: 'row', flexWrap: 'wrap', padding: 20, gap: 16 },
   card: { width: '47%', aspectRatio: 1, borderRadius: 20, padding: 20, justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
   cardTitle: { fontSize: 16, fontWeight: '700', marginTop: 12 },

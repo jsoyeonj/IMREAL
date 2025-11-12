@@ -38,6 +38,14 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "IMREAL이 사진을 저장하기 위해 갤러리 접근이 필요합니다.",
+          "savePhotosPermission": "IMREAL이 보호된 이미지를 저장하기 위해 권한이 필요합니다.",
+          "isAccessMediaLocationEnabled": true
+        }
       ]
     ],
     "experiments": {

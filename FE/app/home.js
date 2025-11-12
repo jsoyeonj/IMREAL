@@ -13,19 +13,21 @@ export default function Home() {
       title: 'DeepFake 탐지', 
       subtitle: '이미지로부터 탐지',
       icon: 'eye-outline',
-      route: '/deepfake/detection',  // ← 추가!
+      route: '/deepfake/detection',
     },
     { 
       id: 2, 
       title: '이미지 보호', 
       subtitle: 'AI로부터 정보 보호',
       icon: 'image-outline',
+      route: '/protection/image-protection',
     },
     { 
       id: 3, 
       title: '워터마크 추가하기', 
       subtitle: '보이지 않는 워터마크',
       icon: 'shield-checkmark-outline',
+      route: '/watermark/add-watermark',  // ⭐ 추가!
     },
     { 
       id: 4, 
@@ -41,11 +43,10 @@ export default function Home() {
     { id: 3, status: 'danger', title: '수상한 딥페이크', subtitle: '자세히 보기', date: '2025.09.13', time: '16:05' },
   ];
 
-  // ← 이 함수 추가!
   const handleCardPress = (card) => {
     setSelectedCard(card.id);
     if (card.route) {
-      console.log('이동:', card.route);  // 디버그용
+      console.log('이동:', card.route);
       router.push(card.route);
     }
   };
@@ -53,7 +54,6 @@ export default function Home() {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Ionicons name="person-circle-outline" size={40} color="#333" />
@@ -67,7 +67,6 @@ export default function Home() {
           </TouchableOpacity>
         </View>
 
-        {/* Cards Grid */}
         <View style={styles.cardsContainer}>
           {cards.map((card) => {
             const isSelected = selectedCard === card.id;
@@ -78,7 +77,7 @@ export default function Home() {
                   styles.card,
                   { backgroundColor: isSelected ? '#26C6DA' : '#FFFFFF' }
                 ]}
-                onPress={() => handleCardPress(card)}  // ← 수정!
+                onPress={() => handleCardPress(card)}
                 activeOpacity={0.7}
               >
                 <Ionicons 
@@ -110,7 +109,6 @@ export default function Home() {
           })}
         </View>
 
-        {/* History Section */}
         <View style={styles.historySection}>
           <View style={styles.historyHeader}>
             <Text style={styles.historyTitle}>내 탐지 기록</Text>
@@ -143,7 +141,6 @@ export default function Home() {
         </View>
       </ScrollView>
 
-      {/* Floating Action Button */}
       <TouchableOpacity style={styles.fab}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
@@ -152,179 +149,35 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerText: {
-    marginLeft: 12,
-  },
-  welcomeText: {
-    fontSize: 14,
-    color: '#999',
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-  },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#2196F3',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 20,
-    gap: 16,
-  },
-  card: {
-    width: '47%',
-    aspectRatio: 1,
-    borderRadius: 20,
-    padding: 20,
-    justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 12,
-  },
-  cardSubtitle: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  cardArrow: {
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  historySection: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    marginBottom: 100,
-    borderRadius: 16,
-    padding: 20,
-  },
-  historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  historyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-  },
-  dateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  historyDate: {
-    fontSize: 12,
-    color: '#666',
-  },
-  historyItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  historyLeft: {
-    flexDirection: 'row',
-    flex: 1,
-  },
-  thumbnail: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    backgroundColor: '#E0E0E0',
-    marginRight: 12,
-  },
-  historyInfo: {
-    flex: 1,
-  },
-  historyTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  safeDot: {
-    backgroundColor: '#4CAF50',
-  },
-  dangerDot: {
-    backgroundColor: '#F44336',
-  },
-  historyItemTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  historyItemSubtitle: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-    marginLeft: 16,
-  },
-  historyItemDate: {
-    fontSize: 11,
-    color: '#CCC',
-    marginTop: 2,
-    marginLeft: 16,
-  },
-  historyItemTime: {
-    fontSize: 12,
-    color: '#999',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  fabText: {
-    fontSize: 32,
-    color: '#FFFFFF',
-    fontWeight: '300',
-  },
+  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: '#FFFFFF' },
+  headerLeft: { flexDirection: 'row', alignItems: 'center' },
+  headerText: { marginLeft: 12 },
+  welcomeText: { fontSize: 14, color: '#999' },
+  userName: { fontSize: 18, fontWeight: '700', color: '#333' },
+  addButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#2196F3', justifyContent: 'center', alignItems: 'center' },
+  cardsContainer: { flexDirection: 'row', flexWrap: 'wrap', padding: 20, gap: 16 },
+  card: { width: '47%', aspectRatio: 1, borderRadius: 20, padding: 20, justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
+  cardTitle: { fontSize: 16, fontWeight: '700', marginTop: 12 },
+  cardSubtitle: { fontSize: 12, marginTop: 4 },
+  cardArrow: { alignSelf: 'flex-start', marginTop: 8 },
+  historySection: { backgroundColor: '#FFFFFF', marginHorizontal: 20, marginTop: 40, marginBottom: 100, borderRadius: 16, padding: 20 },
+  historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  historyTitle: { fontSize: 16, fontWeight: '700', color: '#333' },
+  dateContainer: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  historyDate: { fontSize: 12, color: '#666' },
+  historyItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  historyLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  thumbnail: { width: 48, height: 48, borderRadius: 8, backgroundColor: '#E0E0E0', marginRight: 12 },
+  historyInfo: { flex: 1 },
+  historyTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
+  safeDot: { backgroundColor: '#4CAF50' },
+  dangerDot: { backgroundColor: '#F44336' },
+  historyItemTitle: { fontSize: 14, fontWeight: '600', color: '#333' },
+  historyItemSubtitle: { fontSize: 12, color: '#999', marginBottom: 4 },
+  historyItemDate: { fontSize: 11, color: '#CCC' },
+  historyItemTime: { fontSize: 12, color: '#999' },
+  fab: { position: 'absolute', bottom: 30, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#2196F3', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8 },
+  fabText: { fontSize: 32, color: '#FFFFFF', fontWeight: '300' },
 });

@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useImagePicker } from '../../hooks/useImagePicker';
 import { ImageUploader } from '../../components/deepfake/ImageUploader';
 import { ToggleMode } from '../../components/deepfake/ToggleMode';
+import { DetectionLoadingModal } from '../../components/deepfake/DetectionLoadingModal';
+import { DetectionResultModal } from '../../components/deepfake/DetectionResultModal';
 
 export default function DeepfakeDetection() {
   const router = useRouter();
@@ -15,10 +17,47 @@ export default function DeepfakeDetection() {
     clearImage,
   } = useImagePicker();
 
+  const [showLoadingModal, setShowLoadingModal] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [detectionResult, setDetectionResult] = useState<boolean>(true); // true: 안전, false: 위험
+
   const handleDetection = () => {
     if (!selectedImage) return;
     console.log('탐지 시작:', selectedImage.uri);
-    // TODO: BE 연동
+    
+    // 로딩 모달 표시
+    setShowLoadingModal(true);
+    
+    // 랜덤 결과 생성 (50% 확률)
+    const randomResult = Math.random() > 0.5;
+    setDetectionResult(randomResult);
+    
+    // 5초 후 로딩 닫고 결과 표시
+    setTimeout(() => {
+      setShowLoadingModal(false);
+      setShowResultModal(true);
+    }, 5000);
+  };
+
+  const handleCancelDetection = () => {
+    setShowLoadingModal(false);
+    console.log('탐지 취소됨');
+  };
+
+  const handleCloseResult = () => {
+    setShowResultModal(false);
+    console.log('결과 모달 닫힘');
+  };
+
+  const handleViewDetail = () => {
+    // 상세 페이지로 이동
+    router.push({
+      pathname: '/deepfake/result',
+      params: {
+        imageUri: selectedImage?.uri || '',
+        isSafe: detectionResult.toString(),
+      },
+    });
   };
 
   return (
@@ -68,6 +107,21 @@ export default function DeepfakeDetection() {
           </View>
         )}
       </ScrollView>
+
+      {/* 로딩 모달 - 싱글 모드 (청록색) */}
+      <DetectionLoadingModal
+        visible={showLoadingModal}
+        onCancel={handleCancelDetection}
+        mode="single"
+      />
+
+      {/* 결과 모달 */}
+      <DetectionResultModal
+        visible={showResultModal}
+        onClose={handleCloseResult}
+        onViewDetail={handleViewDetail}
+        isSafe={detectionResult}
+      />
     </SafeAreaView>
   );
 }

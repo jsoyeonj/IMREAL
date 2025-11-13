@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { 
@@ -14,6 +15,7 @@ import {
 
 export default function Login() {
   const router = useRouter();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
@@ -50,9 +52,16 @@ export default function Login() {
     ]).start();
   }, []);
 
-  const handleLogin = () => {
-    // 이메일이나 비밀번호가 입력되어 있으면 로그인 처리
-    if (email.trim() || password.trim()) {
+  const handleLogin = async () => {
+    // 이름, 이메일 또는 비밀번호가 입력되어 있으면 로그인 처리
+    if (name.trim() || email.trim() || password.trim()) {
+      // 이름을 AsyncStorage에 저장
+      try {
+        await AsyncStorage.setItem('userName', name.trim());
+        console.log('이름 저장 완료:', name.trim());
+      } catch (error) {
+        console.error('이름 저장 실패:', error);
+      }
       router.replace('/home');
     }
   };
@@ -86,6 +95,20 @@ export default function Login() {
             }
           ]}
         >
+          {/* Name 입력 필드 추가 */}
+          <View style={styles.inputWrapper}>
+            <Text style={styles.label}>Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="이름을 입력하세요"
+              placeholderTextColor="#CCCCCC"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+          </View>
+
           <View style={styles.inputWrapper}>
             <Text style={styles.label}>Email</Text>
             <TextInput

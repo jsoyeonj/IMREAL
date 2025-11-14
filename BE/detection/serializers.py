@@ -13,6 +13,8 @@ class AnalysisRecordSerializer(serializers.ModelSerializer):
         source='get_analysis_result_display',
         read_only=True
     )
+    # ✅ is_deepfake 필드 추가
+    is_deepfake = serializers.SerializerMethodField()
     
     class Meta:
         model = AnalysisRecord
@@ -29,6 +31,7 @@ class AnalysisRecordSerializer(serializers.ModelSerializer):
             'heatmap_path',  # ✅ 히트맵 경로
             'analysis_result',
             'analysis_result_display',
+            'is_deepfake',  # ✅ 추가
             'confidence_score',
             'detection_details',  # ✅ 다중 사람 분석 결과
             'processing_time',
@@ -42,6 +45,11 @@ class AnalysisRecordSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at'
         ]
+    
+    # ✅ 메서드 추가
+    def get_is_deepfake(self, obj):
+        """analysis_result를 기반으로 is_deepfake 계산"""
+        return obj.analysis_result in ['suspicious', 'deepfake']
 
 
 class ImageAnalysisRequestSerializer(serializers.Serializer):
@@ -87,6 +95,9 @@ class AnalysisRecordListSerializer(serializers.ModelSerializer):
         source='get_analysis_result_display',
         read_only=True
     )
+    is_deepfake = serializers.SerializerMethodField()
+    # ✅ 이미지 URL 추가
+    image_url = serializers.SerializerMethodField()
     
     class Meta:
         model = AnalysisRecord
@@ -97,12 +108,27 @@ class AnalysisRecordListSerializer(serializers.ModelSerializer):
             'file_name',
             'analysis_result',
             'analysis_result_display',
+            'is_deepfake',
             'confidence_score',
+            'image_url',  # ✅ 추가
             'created_at'
         ]
         read_only_fields = fields
-
-
+    
+    def get_is_deepfake(self, obj):
+        """analysis_result를 기반으로 is_deepfake 계산"""
+        return obj.analysis_result in ['suspicious', 'deepfake']
+    
+    # ✅ 이미지 URL 생성
+    def get_image_url(self, obj):
+        """분석한 이미지의 URL 반환"""
+        if obj.original_path:
+            # Django의 request 객체에서 base URL 가져오기
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(f'/media/{obj.original_path}')
+        return None
+    
 class AnalysisStatisticsSerializer(serializers.Serializer):
     """분석 통계 Serializer"""
     

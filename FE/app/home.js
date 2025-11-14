@@ -3,8 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { API_ENDPOINTS } from '../config/api';
+import { useFocusEffect } from '@react-navigation/native';  // ← 이거 추가!
+import { useCallback } from 'react';  // ← 이거도 추가!
 
 export default function Home() {
   const router = useRouter();
@@ -12,12 +15,14 @@ export default function Home() {
   const [userName, setUserName] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [displayCount, setDisplayCount] = useState(3);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // 저장된 이름 불러오기
   useEffect(() => {
     const loadUserName = async () => {
       try {
-        // @user_data 키로 저장된 사용자 정보 불러오기
         const userData = await AsyncStorage.getItem('@user_data');
         console.log('불러온 사용자 정보:', userData);
         if (userData) {
@@ -33,6 +38,70 @@ export default function Home() {
     };
     loadUserName();
   }, []);
+
+  // 화면이 포커스될 때마다 탐지기록 새로고침
+  useFocusEffect(
+    useCallback(() => {
+      loadDetectionHistory();
+    }, [])
+  );
+
+  // 탐지기록 불러오기
+  const loadDetectionHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const token = await AsyncStorage.getItem('@auth_token');
+      
+      if (!token) {
+        console.log('토큰이 없습니다');
+        setIsLoadingHistory(false);
+        return;
+      }
+
+      const response = await fetch(API_ENDPOINTS.DETECTION_RECORDS, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('탐지기록 불러오기 성공:', data);
+        
+        // API 응답에서 records 배열 추출 (DRF pagination 형식 우선)
+        let records = [];
+        if (Array.isArray(data)) {
+          records = data;
+        } else if (data.results && Array.isArray(data.results)) {
+          records = data.results;  // ← 이게 먼저 체크되어야 함!
+        } else if (data.records && Array.isArray(data.records)) {
+          records = data.records;
+        }
+        
+        console.log('추출된 records:', records);
+        
+        // 최신순 정렬
+        const sortedData = records.sort((a, b) => 
+          new Date(b.created_at) - new Date(a.created_at)
+        );
+        
+        setHistory(sortedData);
+      } else {
+        console.error('탐지기록 불러오기 실패:', response.status);
+      }
+    } catch (error) {
+      console.error('탐지기록 불러오기 오류:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // 더 보기
+  const loadMore = () => {
+    setDisplayCount(prev => prev + 3);
+  };
 
   const cards = [
     { 
@@ -63,12 +132,6 @@ export default function Home() {
       icon: 'newspaper-outline',
       route: '/news/news-list',
     },
-  ];
-
-  const history = [
-    { id: 1, status: 'safe', title: '안전한 딥페이크', subtitle: '자세히 보기', date: '2025.09.13', time: '17:05' },
-    { id: 2, status: 'danger', title: '수상한 딥페이크', subtitle: '자세히 보기', date: '2025.09.13', time: '16:05' },
-    { id: 3, status: 'danger', title: '수상한 딥페이크', subtitle: '자세히 보기', date: '2025.09.13', time: '16:05' },
   ];
 
   const handleCardPress = (card) => {
@@ -109,6 +172,9 @@ export default function Home() {
     const day = date.getDate();
     return `${year}년 ${month}월 ${day}일`; 
   };
+
+  // 표시할 기록
+  const displayedHistory = history.slice(0, displayCount);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -182,25 +248,63 @@ export default function Home() {
             </TouchableOpacity>
           </View>
 
-          {history.map((item) => (
-            <View key={item.id} style={styles.historyItem}>
-              <View style={styles.historyLeft}>
-                <View style={styles.thumbnail} />
-                <View style={styles.historyInfo}>
-                  <View style={styles.historyTitleRow}>
-                    <View style={[
-                      styles.statusDot,
-                      item.status === 'safe' ? styles.safeDot : styles.dangerDot
-                    ]} />
-                    <Text style={styles.historyItemTitle}>{item.title}</Text>
-                  </View>
-                  <Text style={styles.historyItemSubtitle}>{item.subtitle}</Text>
-                  <Text style={styles.historyItemDate}>{item.date}</Text>
-                </View>
-              </View>
-              <Text style={styles.historyItemTime}>{item.time}</Text>
-            </View>
-          ))}
+          {isLoadingHistory ? (
+            <Text style={{ textAlign: 'center', color: '#999', paddingVertical: 20 }}>
+              불러오는 중...
+            </Text>
+          ) : displayedHistory.length === 0 ? (
+            <Text style={{ textAlign: 'center', color: '#999', paddingVertical: 20 }}>
+              탐지 기록이 없습니다
+            </Text>
+          ) : (
+            <>
+              {displayedHistory.map((item) => (
+  <View key={item.record_id} style={styles.historyItem}>
+    <View style={styles.historyLeft}>
+      {/* ✅ 이미지 표시 */}
+      {item.image_url ? (
+        <Image 
+          source={{ uri: item.image_url }} 
+          style={styles.thumbnail}
+        />
+      ) : (
+        <View style={styles.thumbnail} />
+      )}
+      
+      <View style={styles.historyInfo}>
+        <View style={styles.historyTitleRow}>
+          <View style={[
+            styles.statusDot,
+            item.is_deepfake ? styles.dangerDot : styles.safeDot
+          ]} />
+          <Text style={styles.historyItemTitle}>
+            {item.is_deepfake ? '수상한 딥페이크' : '안전한 이미지'}
+          </Text>
+        </View>
+        <Text style={styles.historyItemSubtitle}>자세히 보기</Text>
+        <Text style={styles.historyItemDate}>
+          {item.created_at.split(' ')[0]}
+        </Text>
+      </View>
+    </View>
+    <Text style={styles.historyItemTime}>
+      {item.created_at.split(' ')[1].substring(0, 5)}
+    </Text>
+  </View>
+))}
+              
+              {history.length > displayCount && (
+                <TouchableOpacity 
+                  onPress={loadMore} 
+                  style={styles.loadMoreButton}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.loadMoreText}>더 보기</Text>
+                  <Ionicons name="chevron-down" size={16} color="#666" />
+                </TouchableOpacity>
+              )}
+            </>
+          )}
         </View>
       </ScrollView>
 
@@ -405,6 +509,19 @@ const styles = StyleSheet.create({
   historyItemTime: {
     fontSize: 12,
     color: '#999',
+  },
+  loadMoreButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+    gap: 6,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
   },
   fab: {
     position: 'absolute',

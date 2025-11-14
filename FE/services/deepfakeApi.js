@@ -11,14 +11,27 @@ import { API_ENDPOINTS } from '../config/api';
  */
 export const analyzeImage = async (imageUri, token) => {
   try {
-    // FormData 생성 (파일 업로드용)
     const formData = new FormData();
+    
+    // 파일 확장자에서 타입 추출
+    const uriParts = imageUri.split('.');
+    const fileType = uriParts[uriParts.length - 1].toLowerCase();
+    
+    // MIME 타입 결정
+    let mimeType = 'image/jpeg';  // 기본값
+    if (fileType === 'png') {
+      mimeType = 'image/png';
+    } else if (fileType === 'heic' || fileType === 'heif') {
+      mimeType = 'image/heic';
+    }
+    
+    console.log('📷 파일 타입:', fileType, '→', mimeType);
     
     // 이미지 파일 추가
     formData.append('image', {
       uri: imageUri,
-      type: 'image/jpeg',  // 이미지 타입
-      name: 'photo.jpg',   // 파일명
+      type: mimeType,
+      name: `photo.${fileType === 'heic' || fileType === 'heif' ? 'jpg' : fileType}`,
     });
 
     console.log('🔍 이미지 분석 요청:', imageUri);
@@ -28,7 +41,6 @@ export const analyzeImage = async (imageUri, token) => {
       method: 'POST',
       headers: {
         'Authorization': `Token ${token}`,
-        // Content-Type은 FormData 사용 시 자동 설정됨
       },
       body: formData,
     });
@@ -46,7 +58,7 @@ export const analyzeImage = async (imageUri, token) => {
       recordId: data.record_id,
       isDeepfake: data.is_deepfake,
       confidenceScore: data.confidence_score,
-      analysisResult: data.analysis_result,  // 'safe', 'suspicious', 'deepfake'
+      analysisResult: data.analysis_result,
       heatmapUrl: data.heatmap_url,
     };
 
@@ -99,7 +111,7 @@ export const analyzeVideo = async (videoUri, token) => {
       isDeepfake: data.is_deepfake,
       confidenceScore: data.confidence_score,
       analysisResult: data.analysis_result,
-      detectionDetails: data.detection_details || [],  // 다중 사람 결과 배열
+      detectionDetails: data.detection_details || [],
     };
 
   } catch (error) {

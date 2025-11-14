@@ -1,3 +1,4 @@
+// FE/hooks/useImagePicker.ts
 import { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
@@ -30,15 +31,18 @@ export const useImagePicker = () => {
         return;
       }
 
-      // 이미지 선택
+      // 이미지 선택 - JPEG로 자동 변환
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'], // 새로운 방식 (deprecated 경고 해결)
         allowsEditing: false,
-        quality: 1,
+        quality: 0.8,
+        // HEIC를 JPEG로 자동 변환하는 옵션
+        preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current,
       });
 
       if (!result.canceled && result.assets[0]) {
         const image = result.assets[0];
+        console.log('📸 선택된 이미지:', image.uri);
         setSelectedImage({
           uri: image.uri,
           width: image.width,
@@ -72,11 +76,13 @@ export const useImagePicker = () => {
 
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: false,
-        quality: 1,
+        quality: 0.8,
+        preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current,
       });
 
       if (!result.canceled && result.assets[0]) {
         const image = result.assets[0];
+        console.log('📸 촬영된 이미지:', image.uri);
         setSelectedImage({
           uri: image.uri,
           width: image.width,

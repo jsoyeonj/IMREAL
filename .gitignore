@@ -46,3 +46,13 @@ __pycache__
 **/__pycache__/
 .env
 *.log
+
+# Image files
+*.img
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.svg
+*.webp

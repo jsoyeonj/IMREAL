@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -68,6 +69,13 @@ export default function Register() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
+        {/* 배경 자물쇠 이미지 - 맨 뒤로 */}
+        <Image 
+          source={require('../assets/images/logo2.png')}
+          style={styles.lockImage}
+          pointerEvents="none"
+        />
+
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.content}>
             <Text style={styles.title}>회원가입</Text>
@@ -159,6 +167,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: 'center',
+    zIndex: 10,
   },
   title: {
     fontSize: 32,
@@ -220,5 +229,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4ECDC4',
     marginLeft: 8,
+  },
+  lockImage: {
+    position: 'absolute',
+    bottom: 0,
+    left: -40,
+    width: 300,  
+    height: 482, 
+    resizeMode: 'contain',
+    zIndex: 0,
   },
 });

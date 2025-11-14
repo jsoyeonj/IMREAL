@@ -10,6 +10,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -100,6 +101,12 @@ export default function Login() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* 배경 자물쇠 이미지 */}
+        <Image 
+          source={require('../assets/images/logo2.png')}
+          style={styles.lockImage}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -117,6 +124,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: 'center',
+    zIndex: 10,
   },
   title: {
     fontSize: 32,
@@ -178,5 +186,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4ECDC4',
     marginLeft: 8,
+  },
+  lockImage: {
+    position: 'absolute',
+    bottom: 0,
+    left: -40,
+    width: 300,  
+    height: 482, 
+    resizeMode: 'contain',
+    zIndex: 1,
   },
 });

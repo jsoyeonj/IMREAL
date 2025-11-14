@@ -1,7 +1,7 @@
 // FE/config/api.js
 // 백엔드 서버 주소 설정
 
-const API_BASE_URL = 'http://localhost:8000';  // 나중에 배포하면 실제 서버 주소로 변경
+const API_BASE_URL = 'http://192.168.35.253:8000';  // ✅ Wi-Fi IP 주소로 변경
 
 export const API_ENDPOINTS = {
   // 인증

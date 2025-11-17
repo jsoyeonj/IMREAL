@@ -8,14 +8,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { API_ENDPOINTS } from '../config/api';
 import { useFocusEffect } from '@react-navigation/native';  // ← 이거 추가!
 import { useCallback } from 'react';  // ← 이거도 추가!
+import { useAuth } from '../contexts/AuthContext';
+import { getAnalysisRecords } from '../services/deepfakeApi';
 
 export default function Home() {
   const router = useRouter();
+  const { token, user } = useAuth();
   const [selectedCard, setSelectedCard] = useState(null);
   const [userName, setUserName] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [displayCount, setDisplayCount] = useState(3);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
@@ -158,13 +162,11 @@ export default function Home() {
   };
 
   const handleDateChange = (event, date) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-    }
-    if (date) {
-      setSelectedDate(date);
-    }
-  };
+  setShowDatePicker(false);  // ✅ 모든 플랫폼에서 닫기
+  if (date) {
+    setSelectedDate(date);
+  }
+};
 
   const formatDate = (date) => {
     const year = date.getFullYear();
@@ -173,8 +175,24 @@ export default function Home() {
     return `${year}년 ${month}월 ${day}일`; 
   };
 
-  // 표시할 기록
-  const displayedHistory = history.slice(0, displayCount);
+  // ✅ 날짜 비교 함수 추가!
+const isSameDate = (date1, date2) => {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+};
+
+// ✅ 날짜별로 필터링된 기록
+const filteredByDate = history.filter(item => {
+  // created_at을 Date 객체로 변환
+  const itemDate = new Date(item.created_at.split(' ')[0]); // "2025-11-16 22:02:30" -> "2025-11-16"
+  return isSameDate(itemDate, selectedDate);
+});
+
+// ✅ 표시할 기록 (날짜 필터링 + 개수 제한)
+const displayedHistory = filteredByDate.slice(0, displayCount);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -254,7 +272,7 @@ export default function Home() {
             </Text>
           ) : displayedHistory.length === 0 ? (
             <Text style={{ textAlign: 'center', color: '#999', paddingVertical: 20 }}>
-              탐지 기록이 없습니다
+              {formatDate(selectedDate)}에 탐지 기록이 없습니다 
             </Text>
           ) : (
             <>
@@ -293,7 +311,7 @@ export default function Home() {
   </View>
 ))}
               
-              {history.length > displayCount && (
+              {filteredByDate.length > displayCount && (
                 <TouchableOpacity 
                   onPress={loadMore} 
                   style={styles.loadMoreButton}
@@ -313,22 +331,26 @@ export default function Home() {
       </TouchableOpacity>
 
       {showDatePicker && Platform.OS === 'ios' && (
-        <View style={styles.iosDatePickerContainer}>
-          <View style={styles.iosDatePickerHeader}>
-            <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-              <Text style={styles.iosDatePickerButton}>완료</Text>
-            </TouchableOpacity>
-          </View>
-          <DateTimePicker
-            value={selectedDate}
-            mode="date"
-            display="spinner"
-            onChange={handleDateChange}
-            maximumDate={new Date()}
-          />
-        </View>
-      )}
-
+  <View style={styles.iosDatePickerOverlay}>
+    <View style={styles.iosDatePickerModal}>
+      <View style={styles.iosDatePickerHeader}>
+        <Text style={styles.iosDatePickerTitle}>날짜 선택</Text>
+        <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+          <Text style={styles.iosDatePickerButton}>완료</Text>
+        </TouchableOpacity>
+      </View>
+      <DateTimePicker
+        value={selectedDate}
+        mode="date"
+        display="inline"
+        onChange={handleDateChange}
+        maximumDate={new Date()}
+        locale="ko-KR"
+        themeVariant="light"
+      />
+    </View>
+  </View>
+)}
       {showDatePicker && Platform.OS === 'android' && (
         <DateTimePicker
           value={selectedDate}
@@ -387,6 +409,7 @@ const styles = StyleSheet.create({
   cardsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center', 
     padding: 16,
     gap: 16,
   },
@@ -547,30 +570,50 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '300',
   },
-  iosDatePickerContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+  iosDatePickerOverlay: {
+  position: 'absolute',
+  top: 0,
+  bottom: 0,
+  left: 0,
+  right: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  justifyContent: 'center',    // ✅ 'flex-end' → 'center'로 변경!
+  alignItems: 'center',        // ✅ 추가!
+  padding: 20,                 // ✅ 양옆 여백 추가
+  zIndex: 1000,
+},
+iosDatePickerModal: {
+  backgroundColor: '#FFFFFF',
+  borderRadius: 20,            // ✅ 전체 둥글게 (하단만 → 전체)
+  paddingBottom: 30,
+  maxHeight: '65%',
+  width: '100%',               // ✅ 추가!
+  shadowColor: '#000',         // ✅ 그림자 추가
+  shadowOffset: {
+    width: 0,
+    height: 2,
   },
-  iosDatePickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  iosDatePickerButton: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2196F3',
-  },
+  shadowOpacity: 0.25,
+  shadowRadius: 8,
+  elevation: 5,
+},
+iosDatePickerHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  paddingHorizontal: 20,
+  paddingVertical: 16,
+  borderBottomWidth: 1,
+  borderBottomColor: '#E0E0E0',
+},
+iosDatePickerTitle: {
+  fontSize: 18,
+  fontWeight: '700',
+  color: '#333',
+},
+iosDatePickerButton: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#2196F3',
+},
 });

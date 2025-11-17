@@ -40,6 +40,13 @@
         }
       ],
       [
+    "expo-image-picker",
+    {
+      "photosPermission": "IMREAL이 프로필 사진을 선택하기 위해 갤러리 접근이 필요합니다.",
+      "cameraPermission": "IMREAL이 프로필 사진을 촬영하기 위해 카메라 접근이 필요합니다."
+    }
+  ],
+      [
         "expo-media-library",
         {
           "photosPermission": "IMREAL이 사진을 저장하기 위해 갤러리 접근이 필요합니다.",

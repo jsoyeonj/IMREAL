@@ -3,13 +3,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform, Image } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { API_ENDPOINTS } from '../config/api';
 import { useFocusEffect } from '@react-navigation/native';  // ← 이거 추가!
 import { useCallback } from 'react';  // ← 이거도 추가!
 import { useAuth } from '../contexts/AuthContext';
 import { getAnalysisRecords } from '../services/deepfakeApi';
+import { ProfileImageModal } from '../components/profile/ProfileImageModal';
+import { uploadProfileImage, getProfileImage } from '../services/profileApi';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function Home() {
   const router = useRouter();
@@ -22,6 +25,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [displayCount, setDisplayCount] = useState(3);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // 저장된 이름 불러오기
   useEffect(() => {
@@ -42,6 +47,16 @@ export default function Home() {
     };
     loadUserName();
   }, []);
+
+  useEffect(() => {
+  const loadProfileImage = async () => {
+    const data = await getProfileImage();
+    if (data.profile_image_url) {
+      setProfileImageUrl(data.profile_image_url);
+    }
+  };
+  loadProfileImage();
+}, []);
 
   // 화면이 포커스될 때마다 탐지기록 새로고침
   useFocusEffect(
@@ -174,6 +189,76 @@ export default function Home() {
     const day = date.getDate();
     return `${year}년 ${month}월 ${day}일`; 
   };
+  const handleProfilePress = () => {
+  setShowProfileModal(true);
+};
+
+const handleSelectFromGallery = async () => {
+  setShowProfileModal(false);
+  
+  try {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const imageUri = result.assets[0].uri;
+      await handleUploadProfileImage(imageUri);
+    }
+  } catch (error) {
+    console.error('갤러리 선택 오류:', error);
+    Alert.alert('오류', '이미지를 불러오는데 실패했습니다.');
+  }
+};
+
+const handleTakePhoto = async () => {
+  setShowProfileModal(false);
+  
+  try {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert('권한 필요', '카메라 접근 권한이 필요합니다.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const imageUri = result.assets[0].uri;
+      await handleUploadProfileImage(imageUri);
+    }
+  } catch (error) {
+    console.error('사진 촬영 오류:', error);
+    Alert.alert('오류', '사진을 촬영하는데 실패했습니다.');
+  }
+};
+
+const handleUploadProfileImage = async (imageUri) => {
+  try {
+    const data = await uploadProfileImage(imageUri);
+    if (data.profile_image_url) {
+      setProfileImageUrl(data.profile_image_url);
+      Alert.alert('성공', '프로필 사진이 변경되었습니다!');
+    }
+  } catch (error) {
+    Alert.alert('업로드 실패', error.message || '다시 시도해주세요.');
+  }
+};
 
   // ✅ 날짜 비교 함수 추가!
 const isSameDate = (date1, date2) => {
@@ -198,9 +283,20 @@ const displayedHistory = filteredByDate.slice(0, displayCount);
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false} style={{ backgroundColor: '#F5F5F5' }}>
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Ionicons name="person-circle-outline" size={40} color="#333" />
-            <View style={styles.headerText}>
+  <View style={styles.headerLeft}>
+    {/* ✅ 프로필 이미지 또는 기본 아이콘 */}
+    <TouchableOpacity onPress={handleProfilePress}>
+      {profileImageUrl ? (
+        <Image 
+          source={{ uri: profileImageUrl }} 
+          style={styles.profileImage}
+        />
+      ) : (
+        <Ionicons name="person-circle-outline" size={40} color="#333" />
+      )}
+    </TouchableOpacity>
+    
+    <View style={styles.headerText}>
               <Text style={styles.welcomeText}>Welcome Home,</Text>
               <Text style={styles.userName}>{userName}</Text>
             </View>
@@ -360,6 +456,12 @@ const displayedHistory = filteredByDate.slice(0, displayCount);
           maximumDate={new Date()}
         />
       )}
+      <ProfileImageModal
+        visible={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        onSelectGallery={handleSelectFromGallery}
+        onSelectCamera={handleTakePhoto}
+      />
     </SafeAreaView>
   );
 }
@@ -615,5 +717,11 @@ iosDatePickerButton: {
   fontSize: 16,
   fontWeight: '600',
   color: '#2196F3',
+},
+profileImage: {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  backgroundColor: '#E0E0E0',
 },
 });

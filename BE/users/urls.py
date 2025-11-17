@@ -6,7 +6,11 @@ from .views import (
     UserProfileView,
     UserPermissionView,
     AppSettingView,
-    UserDeleteView
+    UserDeleteView,
+    # 프로필 이미지 함수들 추가
+    upload_profile_image,
+    delete_profile_image,
+    get_profile_image,
 )
 
 app_name = 'users'
@@ -26,4 +30,9 @@ urlpatterns = [
     
     # 회원 탈퇴
     path('delete/', UserDeleteView.as_view(), name='delete'),
+
+    # 프로필 이미지 관련 URL
+    path('profile/image/', upload_profile_image, name='upload_profile_image'),
+    path('profile/image/delete/', delete_profile_image, name='delete_profile_image'), 
+    path('profile/image/get/', get_profile_image, name='get_profile_image'), 
 ]

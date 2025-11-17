@@ -31,6 +31,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, max_length=255, verbose_name='이메일')
     password_hash = models.CharField(max_length=255, verbose_name='비밀번호 해시')
     nickname = models.CharField(max_length=100, verbose_name='닉네임')
+    profile_image = models.CharField(
+        max_length=500, 
+        null=True, 
+        blank=True,
+        verbose_name='프로필 이미지 경로'
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
     last_login = models.DateTimeField(null=True, blank=True, verbose_name='마지막 로그인')

@@ -1,3 +1,4 @@
+// FE/app/deepfake/result.tsx
 // @ts-nocheck 
 import React, { useEffect, useState } from 'react';
 import {
@@ -8,10 +9,14 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { ReportButton } from '../../components/report/ReportButton';
+import { ReportModal } from '../../components/report/ReportModal';
+import * as Sharing from 'expo-sharing';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +31,9 @@ export default function DetectionResult() {
   // 랜덤 그래프 데이터 생성
   const [graphData, setGraphData] = useState({ fake: 0, real: 0 });
   
+  // 신고 모달 상태
+  const [showReportModal, setShowReportModal] = useState(false);
+  
   useEffect(() => {
     // 랜덤 확률 생성 (0-100)
     const fakeScore = isSafe 
@@ -36,6 +44,33 @@ export default function DetectionResult() {
     
     setGraphData({ fake: fakeScore, real: realScore });
   }, [isSafe]);
+
+  // 이미지 다운로드 함수
+  const handleDownloadImage = async () => {
+    if (!imageUri) {
+      Alert.alert('오류', '다운로드할 이미지가 없습니다.');
+      return;
+    }
+
+    try {
+      const isAvailable = await Sharing.isAvailableAsync();
+      
+      if (!isAvailable) {
+        Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
+        return;
+      }
+
+      await Sharing.shareAsync(imageUri, {
+        mimeType: 'image/jpeg',
+        dialogTitle: '딥페이크 감지 이미지 저장하기',
+      });
+
+      console.log('이미지 공유 완료');
+    } catch (error) {
+      console.error('이미지 공유 실패:', error);
+      Alert.alert('공유 실패', '이미지 공유 중 오류가 발생했습니다.');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -109,14 +144,33 @@ export default function DetectionResult() {
           </View>
         </View>
 
-        {/* 하단 버튼 */}
-        <TouchableOpacity 
-          style={styles.homeButton}
-          onPress={() => router.push('/home')}
-        >
-          <Text style={styles.homeButtonText}>홈으로 돌아가기</Text>
-        </TouchableOpacity>
+        {/* 하단 버튼 영역 */}
+        <View style={styles.buttonContainer}>
+          {/* fake 비율이 높을 때만 신고하기 버튼 표시 */}
+          {graphData.fake > graphData.real && (
+            <ReportButton 
+              onPress={() => setShowReportModal(true)}
+            />
+          )}
+          
+          <TouchableOpacity 
+            style={styles.homeButton}
+            onPress={() => router.push('/home')}
+          >
+            <Text style={styles.homeButtonText}>홈으로 돌아가기</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
+
+      {/* 신고 모달 */}
+      <ReportModal
+        visible={showReportModal}
+        onClose={() => {
+          setShowReportModal(false);
+          router.push('/home');
+        }}
+        onDownloadImage={handleDownloadImage}
+      />
     </SafeAreaView>
   );
 }
@@ -225,14 +279,17 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   
-  // 버튼
+  // 버튼 영역
+  buttonContainer: {
+    width: '100%',
+    gap: 12,
+  },
   homeButton: {
     width: '100%',
     paddingVertical: 16,
     backgroundColor: '#0071E3',
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 20,
   },
   homeButtonText: {
     fontSize: 16,

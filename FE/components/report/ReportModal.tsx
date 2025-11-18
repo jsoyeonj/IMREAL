@@ -219,7 +219,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
               onPress={onDownloadImage}
             >
               <Text style={styles.downloadButtonText}>
-                이미지 다운로드 받기
+                이미지 공유하기
               </Text>
             </TouchableOpacity>
           </ScrollView>

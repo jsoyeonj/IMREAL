@@ -41,7 +41,7 @@ export function ProtectionCompleteModal({
 
           {/* 다운로드 버튼 */}
           <TouchableOpacity style={styles.downloadButton} onPress={onDownload}>
-            <Text style={styles.downloadButtonText}>다운로드</Text>
+            <Text style={styles.downloadButtonText}>공유하기</Text>
           </TouchableOpacity>
         </View>
       </View>

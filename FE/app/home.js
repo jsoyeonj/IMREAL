@@ -13,6 +13,7 @@ import { getAnalysisRecords } from '../services/deepfakeApi';
 import { ProfileImageModal } from '../components/profile/ProfileImageModal';
 import { uploadProfileImage, getProfileImage } from '../services/profileApi';
 import * as ImagePicker from 'expo-image-picker';
+import { GuideMenuModal } from '../components/menu/GuideMenuModal';
 
 export default function Home() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function Home() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [profileImageUrl, setProfileImageUrl] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showGuideMenu, setShowGuideMenu] = useState(false);
 
   // 저장된 이름 불러오기
   useEffect(() => {
@@ -260,6 +262,10 @@ const handleUploadProfileImage = async (imageUri) => {
   }
 };
 
+const handlePlusButtonPress = () => {
+  setShowGuideMenu(true);
+};
+
   // ✅ 날짜 비교 함수 추가!
 const isSameDate = (date1, date2) => {
   return (
@@ -300,6 +306,13 @@ const displayedHistory = filteredByDate.slice(0, displayCount);
               <Text style={styles.welcomeText}>Welcome Home,</Text>
               <Text style={styles.userName}>{userName}</Text>
             </View>
+          </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+            style={styles.plusButton}
+            onPress={handleLogout}>
+              <Text style={styles.logoutText}>LogOut</Text>
+            </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text style={styles.logoutText}>LogOut</Text>
@@ -422,7 +435,10 @@ const displayedHistory = filteredByDate.slice(0, displayCount);
         </View>
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab}>
+      <TouchableOpacity 
+        style={styles.fab}
+        onPress={handlePlusButtonPress}
+      >
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
@@ -461,6 +477,10 @@ const displayedHistory = filteredByDate.slice(0, displayCount);
         onClose={() => setShowProfileModal(false)}
         onSelectGallery={handleSelectFromGallery}
         onSelectCamera={handleTakePhoto}
+      />
+      <GuideMenuModal
+        visible={showGuideMenu}
+        onClose={() => setShowGuideMenu(false)}
       />
     </SafeAreaView>
   );
@@ -725,3 +745,4 @@ profileImage: {
   backgroundColor: '#E0E0E0',
 },
 });
+

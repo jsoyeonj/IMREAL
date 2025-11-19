@@ -14,6 +14,7 @@ import { ProfileImageModal } from '../components/profile/ProfileImageModal';
 import { uploadProfileImage, getProfileImage } from '../services/profileApi';
 import * as ImagePicker from 'expo-image-picker';
 import { GuideMenuModal } from '../components/menu/GuideMenuModal';
+import { ActionSheetIOS } from 'react-native';
 
 export default function Home() {
   const router = useRouter();
@@ -29,6 +30,7 @@ export default function Home() {
   const [profileImageUrl, setProfileImageUrl] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showGuideMenu, setShowGuideMenu] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
 
   // 저장된 이름 불러오기
   useEffect(() => {
@@ -66,6 +68,16 @@ export default function Home() {
       loadDetectionHistory();
     }, [])
   );
+  
+useEffect(() => {
+  if (pendingAction === 'gallery') {
+    setPendingAction(null);
+    handleSelectFromGalleryActual();
+  } else if (pendingAction === 'camera') {
+    setPendingAction(null);
+    handleTakePhotoActual();
+  }
+}, [pendingAction]);
 
   // 탐지기록 불러오기
   const loadDetectionHistory = async () => {
@@ -195,9 +207,20 @@ export default function Home() {
   setShowProfileModal(true);
 };
 
-const handleSelectFromGallery = async () => {
+// 갤러리 버튼 클릭 시
+const handleSelectFromGallery = () => {
   setShowProfileModal(false);
-  
+  setPendingAction('gallery');
+};
+
+// 카메라 버튼 클릭 시  
+const handleTakePhoto = () => {
+  setShowProfileModal(false);
+  setPendingAction('camera');
+};
+
+// 실제 갤러리 실행
+const handleSelectFromGalleryActual = async () => {
   try {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
@@ -223,9 +246,8 @@ const handleSelectFromGallery = async () => {
   }
 };
 
-const handleTakePhoto = async () => {
-  setShowProfileModal(false);
-  
+// 실제 카메라 실행
+const handleTakePhotoActual = async () => {
   try {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     
@@ -249,7 +271,6 @@ const handleTakePhoto = async () => {
     Alert.alert('오류', '사진을 촬영하는데 실패했습니다.');
   }
 };
-
 const handleUploadProfileImage = async (imageUri) => {
   try {
     const data = await uploadProfileImage(imageUri);

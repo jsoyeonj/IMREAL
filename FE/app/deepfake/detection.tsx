@@ -11,6 +11,7 @@ import { DetectionLoadingModal } from '../../components/deepfake/DetectionLoadin
 import { DetectionResultModal } from '../../components/deepfake/DetectionResultModal';
 import { analyzeImage } from '../../services/deepfakeApi';
 import { useAuth } from '../../contexts/AuthContext';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 export default function DeepfakeDetection() {
   const router = useRouter();
@@ -28,45 +29,66 @@ export default function DeepfakeDetection() {
   const [detectionResult, setDetectionResult] = useState<boolean>(true);
 
   const handleDetection = async () => {
-    if (!selectedImage) return;
+  if (!selectedImage) return;
+  
+  // 로그인 확인
+  if (!token) {
+    Alert.alert('로그인 필요', '로그인 후 이용해주세요', [
+      { text: '확인', onPress: () => router.push('/login') }
+    ]);
+    return;
+  }
+  
+  setShowLoadingModal(true);
+  
+  try {
+    let imageUri = selectedImage.uri;  // ✅ 여기 추가!
     
-    // 로그인 확인
-    if (!token) {
-      Alert.alert('로그인 필요', '로그인 후 이용해주세요', [
-        { text: '확인', onPress: () => router.push('/login') }
-      ]);
-      return;
+    // ✅ HEIC 파일이면 JPEG로 변환 (여기부터 추가!)
+    if (imageUri.toLowerCase().endsWith('.heic') || imageUri.toLowerCase().endsWith('.heif')) {
+      console.log('🔄 HEIC → JPEG 변환 시작');
+      
+      const manipResult = await ImageManipulator.manipulateAsync(
+        imageUri,
+        [],
+        { 
+          compress: 0.8, 
+          format: ImageManipulator.SaveFormat.JPEG 
+        }
+      );
+      
+      imageUri = manipResult.uri;
+      console.log('✅ JPEG 변환 완료:', imageUri);
     }
+    // ✅ 여기까지 추가!
     
-    console.log('🔍 탐지 시작:', selectedImage.uri);
-    setShowLoadingModal(true);
+    console.log('🔍 탐지 시작:', imageUri);  // ✅ selectedImage.uri를 imageUri로 변경!
     
-    try {
-      const result = await analyzeImage(selectedImage.uri, token);
+    const result = await analyzeImage(imageUri, token);  // ✅ 여기도 imageUri로 변경!
+    
+    if (result.success) {
+      const isSafe = result.analysisResult === 'safe';
+      setDetectionResult(isSafe);
       
-      if (result.success) {
-        const isSafe = result.analysisResult === 'safe';
-        setDetectionResult(isSafe);
-        
-        setShowLoadingModal(false);
-        setShowResultModal(true);
-        
-        console.log('✅ 분석 완료:', {
-          isSafe,
-          confidence: result.confidenceScore,
-          result: result.analysisResult
-        });
-      } else {
-        setShowLoadingModal(false);
-        Alert.alert('분석 실패', result.error || '다시 시도해주세요');
-      }
-      
-    } catch (error) {
       setShowLoadingModal(false);
-      Alert.alert('오류', '분석 중 문제가 발생했습니다');
-      console.error('❌ 분석 오류:', error);
+      setShowResultModal(true);
+      
+      console.log('✅ 분석 완료:', {
+        isSafe,
+        confidence: result.confidenceScore,
+        result: result.analysisResult
+      });
+    } else {
+      setShowLoadingModal(false);
+      Alert.alert('분석 실패', result.error || '다시 시도해주세요');
     }
-  };
+    
+  } catch (error) {
+    setShowLoadingModal(false);
+    Alert.alert('오류', '분석 중 문제가 발생했습니다');
+    console.error('❌ 분석 오류:', error);
+  }
+};
 
   const handleCancelDetection = () => {
     setShowLoadingModal(false);

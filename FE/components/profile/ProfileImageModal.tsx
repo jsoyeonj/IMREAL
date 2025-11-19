@@ -30,45 +30,42 @@ export const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      {/* ✅ Pressable로 변경하고, 모달 내부 클릭 시 닫히지 않도록 */}
-      <Pressable 
-        style={styles.overlay} 
-        onPress={onClose}
-      >
-        {/* ✅ onStartShouldSetResponder로 이벤트 전파 막기 */}
-        <View 
-          style={styles.modal}
-          onStartShouldSetResponder={() => true}
-          onTouchEnd={(e) => e.stopPropagation()}
-        >
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.title}>프로필 사진 변경</Text>
           
-          <TouchableOpacity 
+          <Pressable 
             style={styles.option} 
-            onPress={onSelectGallery}
-            activeOpacity={0.7}
+            onPress={(e) => {
+              e.stopPropagation();
+              onSelectGallery();
+            }}
           >
             <Ionicons name="images-outline" size={24} color="#4ECDC4" />
             <Text style={styles.optionText}>갤러리에서 선택</Text>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity 
+          <Pressable 
             style={styles.option} 
-            onPress={onSelectCamera}
-            activeOpacity={0.7}
+            onPress={(e) => {
+              e.stopPropagation();
+              onSelectCamera();
+            }}
           >
             <Ionicons name="camera-outline" size={24} color="#4ECDC4" />
             <Text style={styles.optionText}>사진 촬영</Text>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity 
+          <Pressable 
             style={styles.cancelButton} 
-            onPress={onClose}
-            activeOpacity={0.7}
+            onPress={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
           >
             <Text style={styles.cancelText}>취소</Text>
-          </TouchableOpacity>
-        </View>
+          </Pressable>
+        </Pressable>
       </Pressable>
     </Modal>
   );

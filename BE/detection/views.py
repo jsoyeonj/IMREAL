@@ -45,16 +45,36 @@ class ImageAnalysisView(APIView):
                 use_s3=False
             )
             
-            # AI 분석
+            # ✅ S3 URL 생성
+            from media_files.storage import S3Storage
+            
+            if media_file.storage_type == 's3':
+                s3_storage = S3Storage()
+                s3_url = s3_storage.get_presigned_url(media_file.s3_key)
+            else:
+                # 로컬 파일인 경우 전체 URL 생성
+                s3_url = request.build_absolute_uri(f'/media/{media_file.file_path}')
+            
+            # AI 분석 (S3 URL 전달)
             ai_service = AIModelService()
-            full_path = os.path.join(settings.MEDIA_ROOT, media_file.file_path)
-            result = ai_service.analyze_image(full_path)
+            result = ai_service.analyze_image(s3_url)
             
             if not result['success']:
                 return Response(
                     {'error': result['error']},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
+            
+            # ✅ 전체 판정 계산
+            face_scores = result['face_quality_scores']
+            is_any_deepfake = any(face['is_deepfake'] for face in face_scores)
+            avg_confidence = sum(face['rate'] for face in face_scores) / len(face_scores) if face_scores else 0
+            
+            # 분석 결과 결정
+            if is_any_deepfake:
+                analysis_result = 'deepfake' if avg_confidence >= 0.8 else 'suspicious'
+            else:
+                analysis_result = 'safe'
             
             # 분석 기록 저장
             record = AnalysisRecord.objects.create(
@@ -64,25 +84,23 @@ class ImageAnalysisView(APIView):
                 file_size=media_file.file_size,
                 file_format=media_file.file_format,
                 original_path=media_file.file_path,
-                heatmap_path=result.get('heatmap_url'),  # ✅ 히트맵
-                analysis_result=result['analysis_result'],
-                confidence_score=result['confidence_score'],
+                analysis_result=analysis_result,
+                confidence_score=avg_confidence * 100,  # 0-100 스케일
+                detection_details=face_scores,  # ✅ 다중 얼굴 결과 저장
                 processing_time=result['processing_time'],
-                ai_model_version=result['ai_model_version']
+                ai_model_version='v1.0'
             )
             
-            # ✅ 관계 연결
             media_file.related_model = 'AnalysisRecord'
             media_file.related_record_id = record.record_id
             media_file.save()
             
-            # ✅ 단순화된 응답
+            # ✅ 새로운 API 응답 구조
             return Response({
                 'record_id': record.record_id,
-                'is_deepfake': result['is_deepfake'],
-                'confidence_score': float(result['confidence_score']),
-                'analysis_result': result['analysis_result'],
-                'heatmap_url': result.get('heatmap_url')
+                'face_count': result['face_count'],
+                'face_quality_scores': result['face_quality_scores'],
+                'processing_time': result['processing_time']
             }, status=status.HTTP_201_CREATED)
         
         except ValueError as e:
@@ -119,16 +137,36 @@ class VideoAnalysisView(APIView):
                 use_s3=False
             )
             
-            # AI 분석
+            # ✅ S3 URL 생성
+            from media_files.storage import S3Storage
+            
+            if media_file.storage_type == 's3':
+                s3_storage = S3Storage()
+                s3_url = s3_storage.get_presigned_url(media_file.s3_key)
+            else:
+                # 로컬 파일인 경우 전체 URL 생성
+                s3_url = request.build_absolute_uri(f'/media/{media_file.file_path}')
+            
+            # AI 분석 (S3 URL 전달)
             ai_service = AIModelService()
-            full_path = os.path.join(settings.MEDIA_ROOT, media_file.file_path)
-            result = ai_service.analyze_video(full_path)
+            result = ai_service.analyze_video(s3_url)
             
             if not result['success']:
                 return Response(
                     {'error': result['error']},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
+            
+            # ✅ 전체 판정 계산 (새로운 API 명세에 맞춤)
+            face_scores = result['face_quality_scores']
+            is_any_deepfake = any(face['is_deepfake'] for face in face_scores)
+            avg_confidence = sum(face['rate'] for face in face_scores) / len(face_scores) if face_scores else 0
+            
+            # 분석 결과 결정
+            if is_any_deepfake:
+                analysis_result = 'deepfake' if avg_confidence >= 0.8 else 'suspicious'
+            else:
+                analysis_result = 'safe'
             
             # 분석 기록 저장
             record = AnalysisRecord.objects.create(
@@ -138,11 +176,11 @@ class VideoAnalysisView(APIView):
                 file_size=media_file.file_size,
                 file_format=media_file.file_format,
                 original_path=media_file.file_path,
-                analysis_result=result['analysis_result'],
-                confidence_score=result['confidence_score'],
-                detection_details=result.get('detection_details', []),  # ✅ 사람별 상세 결과
+                analysis_result=analysis_result,
+                confidence_score=avg_confidence * 100,  # 0-100 스케일
+                detection_details=face_scores,  # ✅ 다중 얼굴 결과 저장
                 processing_time=result['processing_time'],
-                ai_model_version=result['ai_model_version']
+                ai_model_version='v1.0'
             )
             
             # ✅ 관계 연결
@@ -150,13 +188,12 @@ class VideoAnalysisView(APIView):
             media_file.related_record_id = record.record_id
             media_file.save()
             
-            # ✅ 다중 사람 분석 결과 반환
+            # ✅ 새로운 API 응답 구조
             return Response({
                 'record_id': record.record_id,
-                'is_deepfake': result['is_deepfake'],
-                'confidence_score': float(result['confidence_score']),
-                'analysis_result': result['analysis_result'],
-                'detection_details': result.get('detection_details', [])
+                'face_count': result['face_count'],
+                'face_quality_scores': result['face_quality_scores'],
+                'processing_time': result['processing_time']
             }, status=status.HTTP_201_CREATED)
         
         except ValueError as e:
@@ -244,8 +281,7 @@ class AnalysisStatisticsView(APIView):
             'recent_analyses': AnalysisRecordListSerializer(recent, many=True).data
         }
         
-        serializer = AnalysisStatisticsSerializer(data)
-        return Response(serializer.data)
+        return Response(data)
 
 
 class AIHealthCheckView(APIView):

@@ -20,7 +20,7 @@ class MediaFile(models.Model):
         ('detection', '딥페이크 분석'),
         ('protection', '콘텐츠 보호'),
         ('zoom', 'Zoom 감시'),
-        ('report', '신고 증거'),
+        # ('report', '신고 증거'),
     ]
     
     file_id = models.BigAutoField(primary_key=True)

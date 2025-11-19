@@ -98,6 +98,27 @@ class ZoomCaptureView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
             
+            # ✅ 새로운 API 명세에 맞춰 분석 결과 계산
+            if 'face_quality_scores' in result:
+                # 새로운 다중 얼굴 감지 방식
+                face_scores = result['face_quality_scores']
+                is_any_deepfake = any(face['is_deepfake'] for face in face_scores)
+                avg_confidence = sum(face['rate'] for face in face_scores) / len(face_scores) if face_scores else 0
+                
+                # 분석 결과 결정
+                if is_any_deepfake:
+                    analysis_result = 'deepfake' if avg_confidence >= 0.8 else 'suspicious'
+                else:
+                    analysis_result = 'safe'
+                
+                confidence_score = avg_confidence * 100  # 0-100 스케일
+                detection_details = face_scores
+            else:
+                # 이전 방식 (하위 호환)
+                analysis_result = result.get('analysis_result', 'safe')
+                confidence_score = result.get('confidence_score', 0)
+                detection_details = None
+            
             # 분석 기록 저장
             record = AnalysisRecord.objects.create(
                 user=request.user,
@@ -106,10 +127,11 @@ class ZoomCaptureView(APIView):
                 file_size=media_file.file_size,
                 file_format=media_file.file_format,
                 original_path=media_file.file_path,
-                analysis_result=result['analysis_result'],
-                confidence_score=result['confidence_score'],
+                analysis_result=analysis_result,
+                confidence_score=confidence_score,
+                detection_details=detection_details,
                 processing_time=result['processing_time'],
-                ai_model_version=result['ai_model_version']
+                ai_model_version='v1.0'
             )
             
             # ✅ 관계 연결
@@ -118,7 +140,7 @@ class ZoomCaptureView(APIView):
             media_file.save()
             
             # Zoom 캡처 기록
-            is_deepfake = result['analysis_result'] in ['suspicious', 'deepfake']
+            is_deepfake = analysis_result in ['suspicious', 'deepfake']
             
             capture = ZoomCapture.objects.create(
                 session=session,
@@ -139,8 +161,8 @@ class ZoomCaptureView(APIView):
             return Response({
                 'capture_id': capture.capture_id,
                 'is_deepfake': is_deepfake,
-                'confidence_score': float(result['confidence_score']),
-                'analysis_result': result['analysis_result'],
+                'confidence_score': float(confidence_score),  # ← 변수 사용!
+                'analysis_result': analysis_result,  # ← 변수 사용!
                 'alert_triggered': is_deepfake
             }, status=status.HTTP_201_CREATED)
         

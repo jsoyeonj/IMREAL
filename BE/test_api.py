@@ -29,7 +29,6 @@ user_id = None
 record_id = None
 job_id = None
 session_id = None
-report_id = None
 
 
 # ============================================
@@ -504,87 +503,6 @@ def test_get_zoom_report():
 
 
 # ============================================
-# 5. Reports 앱 테스트
-# ============================================
-def test_submit_report():
-    """신고 접수 테스트"""
-    print_test_header("5-1. 신고 접수")
-    
-    if not record_id:
-        print_error("Record ID가 없습니다. 이미지 분석을 먼저 실행하세요.")
-        return False
-    
-    url = f"{BASE_URL}/api/reports/submit/"
-    headers = {"Authorization": f"Token {token}"}
-    
-    data = {
-        "record_id": record_id,
-        "report_type": "deepfake_image",
-        "discovery_source": "sns",
-        "damage_level": "personal",  # ← 올바른 값!
-        "description": "테스트 신고입니다.",
-        "report_agency": "kisa"
-    }
-    
-    print_info(f"POST {url}")
-    print_info(f"데이터: {json.dumps(data, ensure_ascii=False)}")
-    response = requests.post(url, headers=headers, json=data)
-    print_response(response)
-    
-    if response.status_code in [200, 201]:
-        global report_id
-        result = response.json()
-        report_id = result.get('report_id')
-        print_success(f"신고 접수 성공! Report ID: {report_id}")
-        return True
-    else:
-        print_error("신고 접수 실패!")
-        return False
-
-
-def test_get_my_reports():
-    """내 신고 내역 조회 테스트"""
-    print_test_header("5-2. 내 신고 내역 조회")
-    
-    url = f"{BASE_URL}/api/reports/"
-    headers = {"Authorization": f"Token {token}"}
-    
-    print_info(f"GET {url}")
-    response = requests.get(url, headers=headers)
-    print_response(response)
-    
-    if response.status_code == 200:
-        print_success("내 신고 내역 조회 성공!")
-        return True
-    else:
-        print_error("내 신고 내역 조회 실패!")
-        return False
-
-
-def test_get_report_detail():
-    """신고 상세 조회 테스트"""
-    print_test_header("5-3. 신고 상세 조회")
-    
-    if not report_id:
-        print_error("Report ID가 없습니다. 신고를 먼저 접수하세요.")
-        return False
-    
-    url = f"{BASE_URL}/api/reports/{report_id}/"
-    headers = {"Authorization": f"Token {token}"}
-    
-    print_info(f"GET {url}")
-    response = requests.get(url, headers=headers)
-    print_response(response)
-    
-    if response.status_code == 200:
-        print_success("신고 상세 조회 성공!")
-        return True
-    else:
-        print_error("신고 상세 조회 실패!")
-        return False
-
-
-# ============================================
 # 메인 실행
 # ============================================
 def main():
@@ -625,11 +543,6 @@ def main():
     results.append(("줌 캡처 분석", test_capture_zoom()))
     results.append(("줌 세션 종료", test_end_zoom_session()))
     results.append(("줌 보고서 조회", test_get_zoom_report()))
-    
-    # 5. Reports 앱 테스트
-    results.append(("신고 접수", test_submit_report()))
-    results.append(("내 신고 내역", test_get_my_reports()))
-    results.append(("신고 상세 조회", test_get_report_detail()))
     
     # 결과 요약
     print(f"\n{Colors.HEADER}{Colors.BOLD}{'='*60}{Colors.ENDC}")

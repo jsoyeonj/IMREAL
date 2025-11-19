@@ -83,9 +83,18 @@ class ImageProtectionView(APIView):
                 progress_percentage=0.0
             )
             
-            # ✅ AI 서버에 파일 정보 전달
+            # ✅ S3 URL 생성
+            from media_files.storage import S3Storage
+            
+            if media_files[0].storage_type == 's3':
+                s3_storage = S3Storage()
+                s3_url = s3_storage.get_presigned_url(media_files[0].s3_key)
+            else:
+                s3_url = request.build_absolute_uri(f'/media/{media_files[0].file_path}')
+            
+            # AI 서버 호출
             protection_service = ProtectionService()
-            result = protection_service.protect_images(file_identifiers, job_type)
+            result = protection_service.protect_image(s3_url, job_type)
             
             if not result['success']:
                 job.job_status = 'failed'
@@ -97,14 +106,22 @@ class ImageProtectionView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
             
-            # ✅ S3 URL 리스트만 저장
-            protected_files_data = []
-            for protected_info in result['protected_files']:
-                protected_files_data.append({
-                    'original_file_id': protected_info['original_file_id'],
-                    's3_url': protected_info['s3_url'],  # ✅ S3 URL만!
-                    'file_name': protected_info['file_name']
-                })
+            # ✅ 결과 처리
+            if 'results' in result:
+                # 새로운 API 명세 형식
+                protected_files_data = []
+                for idx, protected_info in enumerate(result['results']):
+                    protected_files_data.append({
+                        'request_version': protected_info.get('request_version'),
+                        'ResultUrl': protected_info.get('ResultUrl'),
+                        'file_name': media_files[idx].original_name if idx < len(media_files) else 'unknown'
+                    })
+            elif 'protected_files' in result:
+                # 이전 형식 (하위 호환)
+                protected_files_data = result['protected_files']
+            else:
+                # Mock 응답일 경우
+                protected_files_data = []
             
             job.protected_files = protected_files_data
             job.job_status = 'completed'
@@ -196,23 +213,33 @@ class VideoProtectionView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
             
-            # ✅ S3 URL만 저장
-            protected_file_data = {
-                's3_url': result['s3_url'],  # ✅ S3 URL만!
-                'file_name': result['file_name']
-            }
-            
-            job.protected_files = [protected_file_data]
+            # ✅ 결과 처리
+            if 'results' in result:
+                # 새로운 API 명세 형식
+                job.protected_files = result['results']
+                protected_url = result['results'][0].get('ResultUrl') if result['results'] else None
+                protected_filename = media_file.original_name
+            elif 's3_url' in result:
+                # 이전 형식 (하위 호환)
+                protected_url = result['s3_url']
+                protected_filename = result.get('file_name', media_file.original_name)
+                job.protected_files = [{'s3_url': protected_url, 'file_name': protected_filename}]
+            else:
+                # Mock 응답
+                protected_url = None
+                protected_filename = media_file.original_name
+                job.protected_files = []
+
             job.job_status = 'completed'
             job.progress_percentage = 100.0
             job.save()
             
-            # ✅ S3 URL만 반환
+            # ✅ 응답
             return Response({
                 'job_id': job.job_id,
                 'status': 'completed',
-                's3_url': protected_file_data['s3_url'],  # ✅ 다운로드 URL
-                'file_name': protected_file_data['file_name']
+                'protected_url': protected_url,  # ← s3_url → protected_url
+                'file_name': protected_filename
             }, status=status.HTTP_201_CREATED)
         
         except ValueError as e:

@@ -1,6 +1,6 @@
 // FE/services/profileApi.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import API_BASE_URL from '../config/api';  // ✅ 이렇게 변경!
+import API_BASE_URL from '../config/api';
 
 /**
  * 프로필 이미지 업로드
@@ -23,7 +23,7 @@ export const uploadProfileImage = async (imageUri: string) => {
       type: type,
     } as any);
 
-    const response = await fetch(`${API_BASE_URL}/api/users/profile/image/`, {  // ✅ 이렇게 변경!
+    const response = await fetch(`${API_BASE_URL}/api/users/profile/image/`, {
       method: 'POST',
       headers: {
         'Authorization': `Token ${token}`,
@@ -37,7 +37,16 @@ export const uploadProfileImage = async (imageUri: string) => {
     }
 
     const data = await response.json();
-    console.log('✅ 프로필 이미지 업로드 성공:', data);
+    
+    // ✅ 핵심 수정: 상대 경로를 완전한 URL로 변환
+    if (data.profile_image_url) {
+      // 백슬래시를 슬래시로 변환
+      const cleanPath = data.profile_image_url.replace(/\\/g, '/');
+      // 완전한 URL 생성
+      data.profile_image_url = `${API_BASE_URL}${cleanPath}`;
+    }
+    
+    console.log('✅ 프로필 이미지 업로드 성공 (URL 변환 완료):', data);
     return data;
   } catch (error) {
     console.error('❌ 프로필 이미지 업로드 실패:', error);
@@ -53,7 +62,7 @@ export const getProfileImage = async () => {
     const token = await AsyncStorage.getItem('@auth_token');
     if (!token) throw new Error('로그인이 필요합니다');
 
-    const response = await fetch(`${API_BASE_URL}/api/users/profile/image/get/`, {  // ✅ 이렇게 변경!
+    const response = await fetch(`${API_BASE_URL}/api/users/profile/image/get/`, {
       method: 'GET',
       headers: {
         'Authorization': `Token ${token}`,
@@ -66,7 +75,16 @@ export const getProfileImage = async () => {
     }
 
     const data = await response.json();
-    console.log('✅ 프로필 이미지 조회 성공:', data);
+    
+    // ✅ 핵심 수정: 상대 경로를 완전한 URL로 변환
+    if (data.profile_image_url) {
+      // 백슬래시를 슬래시로 변환
+      const cleanPath = data.profile_image_url.replace(/\\/g, '/');
+      // 완전한 URL 생성
+      data.profile_image_url = `${API_BASE_URL}${cleanPath}`;
+    }
+    
+    console.log('✅ 프로필 이미지 조회 성공 (URL 변환 완료):', data);
     return data;
   } catch (error) {
     console.error('❌ 프로필 이미지 조회 실패:', error);

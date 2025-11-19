@@ -71,11 +71,11 @@ export default function Home() {
   
 useEffect(() => {
   if (pendingAction === 'gallery') {
-    setPendingAction(null);
     handleSelectFromGalleryActual();
-  } else if (pendingAction === 'camera') {
     setPendingAction(null);
+  } else if (pendingAction === 'camera') {
     handleTakePhotoActual();
+    setPendingAction(null);
   }
 }, [pendingAction]);
 
@@ -275,10 +275,14 @@ const handleUploadProfileImage = async (imageUri) => {
   try {
     const data = await uploadProfileImage(imageUri);
     if (data.profile_image_url) {
+      // ✅ 한 번만 업데이트 (서버에서 받은 데이터 바로 사용)
       setProfileImageUrl(data.profile_image_url);
       Alert.alert('성공', '프로필 사진이 변경되었습니다!');
+      
+      console.log('🖼️ 프로필 이미지 URL:', data.profile_image_url);
     }
   } catch (error) {
+    console.error('프로필 이미지 업로드 실패:', error);
     Alert.alert('업로드 실패', error.message || '다시 시도해주세요.');
   }
 };
@@ -317,6 +321,7 @@ const displayedHistory = filteredByDate.slice(0, displayCount);
         <Image 
           source={{ uri: profileImageUrl }} 
           style={styles.profileImage}
+          key={profileImageUrl}
         />
       ) : (
         <Ionicons name="person-circle-outline" size={40} color="#333" />

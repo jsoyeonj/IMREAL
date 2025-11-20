@@ -1,3 +1,4 @@
+// FE/app/watermark/add-watermark.tsx
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,10 +7,14 @@ import { useImagePicker } from '../../hooks/useImagePicker';
 import { ImageUploader } from '../../components/deepfake/ImageUploader';
 import { WatermarkLoadingModal } from '../../components/watermark/WatermarkLoadingModal';
 import { WatermarkCompleteModal } from '../../components/watermark/WatermarkCompleteModal';
+import { useAuth } from '../../contexts/AuthContext';
+import { addWatermark } from '../../services/watermarkApi';
 import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
 
 export default function AddWatermark() {
   const router = useRouter();
+  const { token } = useAuth();
   const {
     selectedImage,
     isLoading,
@@ -19,19 +24,58 @@ export default function AddWatermark() {
 
   const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [watermarkedImageUrl, setWatermarkedImageUrl] = useState<string | null>(null);
 
-  const handleAddWatermark = () => {
+  const handleAddWatermark = async () => {
     if (!selectedImage) return;
-    console.log('워터마크 추가 시작:', selectedImage.uri);
     
-    // 로딩 모달 표시
+    // ✅ 로그인 확인
+    if (!token) {
+      Alert.alert('로그인 필요', '로그인 후 이용해주세요', [
+        { text: '확인', onPress: () => router.push('/login') }
+      ]);
+      return;
+    }
+    
+    console.log('🔒 워터마크 추가 시작:', selectedImage.uri);
     setShowLoadingModal(true);
     
-    // 5초 후 로딩 닫고 완료 표시
-    setTimeout(() => {
+    try {
+      // ✅ 백엔드 API 호출 (job_type: 'watermark')
+      const result: any = await addWatermark(selectedImage.uri, token, 'watermark');
+      
+      if (result.success) {
+        console.log('✅ 워터마크 추가 완료:', {
+          jobId: result.jobId,
+          status: result.status,
+          filesCount: result.protectedFiles?.length || 0
+        });
+        
+        // 워터마크가 추가된 이미지 URL 저장
+        if (result.protectedFiles && result.protectedFiles.length > 0) {
+          // 'Watermark' 타입의 파일 찾기
+          const watermarkFile = result.protectedFiles.find(
+            (file: any) => file.request_version === 'Watermark'
+          );
+          
+          if (watermarkFile && watermarkFile.ResultUrl) {
+            setWatermarkedImageUrl(watermarkFile.ResultUrl);
+            console.log('📥 워터마크 이미지 URL:', watermarkFile.ResultUrl);
+          }
+        }
+        
+        setShowLoadingModal(false);
+        setShowCompleteModal(true);
+      } else {
+        setShowLoadingModal(false);
+        Alert.alert('워터마크 추가 실패', result.error || '다시 시도해주세요');
+      }
+      
+    } catch (error) {
       setShowLoadingModal(false);
-      setShowCompleteModal(true);
-    }, 5000);
+      Alert.alert('오류', '워터마크 추가 중 문제가 발생했습니다');
+      console.error('❌ 워터마크 추가 오류:', error);
+    }
   };
 
   const handleCancelWatermark = () => {
@@ -40,31 +84,48 @@ export default function AddWatermark() {
   };
 
   const handleDownload = async () => {
-    if (!selectedImage) return;
+    // 워터마크가 추가된 이미지 URL이 있으면 그것을 사용, 없으면 원본 사용
+    const imageToShare = watermarkedImageUrl || selectedImage?.uri;
+    
+    if (!imageToShare) return;
     
     try {
-      // Expo Sharing 사용 (Expo Go에서 작동)
-      const isAvailable = await Sharing.isAvailableAsync();
-      
-      if (!isAvailable) {
-        Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
-        return;
+      if (Platform.OS === 'ios') {
+        // ✅ iOS: 공유 메뉴 사용
+        const isAvailable = await Sharing.isAvailableAsync();
+        
+        if (!isAvailable) {
+          Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
+          return;
+        }
+
+        await Sharing.shareAsync(imageToShare, {
+          mimeType: 'image/jpeg',
+          dialogTitle: '워터마크가 추가된 이미지 저장하기',
+        });
+
+        console.log('✅ iOS 공유 완료');
+      } else {
+        // ✅ Android: 공유 메뉴 사용 (또는 직접 저장 구현 가능)
+        const isAvailable = await Sharing.isAvailableAsync();
+        
+        if (isAvailable) {
+          await Sharing.shareAsync(imageToShare, {
+            mimeType: 'image/jpeg',
+            dialogTitle: '워터마크가 추가된 이미지 저장하기',
+          });
+          console.log('✅ Android 공유 완료');
+        } else {
+          Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
+        }
       }
-
-      // 공유 메뉴 열기 (사용자가 갤러리 저장 선택 가능)
-      await Sharing.shareAsync(selectedImage.uri, {
-        mimeType: 'image/jpeg',
-        dialogTitle: '워터마크가 추가된 이미지 저장하기',
-      });
-
-      console.log('공유 완료');
       
       // 모달 닫고 홈으로
       setShowCompleteModal(false);
       router.push('/home');
       
     } catch (error) {
-      console.error('공유 실패:', error);
+      console.error('❌ 공유 실패:', error);
       Alert.alert('공유 실패', '이미지 공유 중 오류가 발생했습니다.');
     }
   };

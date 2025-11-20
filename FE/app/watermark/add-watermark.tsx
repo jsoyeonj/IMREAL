@@ -9,7 +9,8 @@ import {
   ScrollView, 
   Alert,
   TextInput,
-  TouchableOpacity 
+  TouchableOpacity,
+  KeyboardAvoidingView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -153,13 +154,21 @@ export default function AddWatermark() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* 상단 헤더 */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>워터마크 추가</Text>
-      </View>
+  <SafeAreaView style={styles.container}>
+    <View style={styles.header}>
+      <Text style={styles.headerTitle}>워터마크 추가</Text>
+    </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.content} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* 일러스트 */}
         <View style={styles.illustrationWrap}>
           <Image
@@ -178,7 +187,7 @@ export default function AddWatermark() {
           </Text>
         </View>
 
-        {/* ✅ 워터마크 텍스트 입력 섹션 추가 */}
+        {/* 워터마크 텍스트 입력 섹션 */}
         <View style={styles.inputSection}>
           <Text style={styles.inputLabel}>워터마크 텍스트</Text>
           <TextInput
@@ -188,6 +197,7 @@ export default function AddWatermark() {
             placeholder="워터마크로 사용할 텍스트 입력 (예: IMREAL 2025)"
             placeholderTextColor="#999"
             maxLength={50}
+            returnKeyType="done"
           />
           <Text style={styles.inputHint}>
             * 최대 50자까지 입력 가능합니다
@@ -214,25 +224,26 @@ export default function AddWatermark() {
           </TouchableOpacity>
         )}
       </ScrollView>
+    </KeyboardAvoidingView>
 
-      {/* 로딩 모달 */}
-      <WatermarkLoadingModal
-        visible={showLoadingModal}
-        onCancel={handleCancelWatermark}
-      />
+    {/* 로딩 모달 */}
+    <WatermarkLoadingModal
+      visible={showLoadingModal}
+      onCancel={handleCancelWatermark}
+    />
 
-      {/* 완료 모달 */}
-      {/* @ts-ignore */}
-      <WatermarkCompleteModal
-        visible={showCompleteModal}
-        onClose={() => {
-          setShowCompleteModal(false);
-          router.push('/home');
-        }}
-        onDownload={handleDownload}
-      />
-    </SafeAreaView>
-  );
+    {/* 완료 모달 */}
+    {/* @ts-ignore */}
+    <WatermarkCompleteModal
+      visible={showCompleteModal}
+      onClose={() => {
+        setShowCompleteModal(false);
+        router.push('/home');
+      }}
+      onDownload={handleDownload}
+    />
+  </SafeAreaView>
+);
 }
 
 const styles = StyleSheet.create({

@@ -226,3 +226,39 @@ export const getAnalysisStatistics = async (token) => {
     };
   }
 };
+
+/**
+ * 분석 기록 상세 조회
+ * @param {string} token - 인증 토큰
+ * @param {number} recordId - 조회할 기록 ID
+ * @returns {Promise<Object>} 분석 기록 상세
+ */
+export const getAnalysisRecordDetail = async (token, recordId) => {
+  try {
+    const response = await fetch(`${API_ENDPOINTS.DETECTION_RECORDS}${recordId}/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error('기록을 불러오는데 실패했습니다');
+    }
+
+    return {
+      success: true,
+      record: data,
+    };
+
+  } catch (error) {
+    console.error('❌ 상세 기록 조회 오류:', error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};

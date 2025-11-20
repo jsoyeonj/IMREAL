@@ -136,6 +136,15 @@ useEffect(() => {
     setDisplayCount(prev => prev + 3);
   };
 
+  // ✅ 탐지 기록 클릭 핸들러 추가
+const handleHistoryItemPress = (item) => {
+  console.log('탐지 기록 클릭:', item.record_id);
+  router.push({
+    pathname: '/deepfake/detection-result',
+    params: { recordId: item.record_id }
+  });
+};
+
   const cards = [
     { 
       id: 1, 
@@ -410,54 +419,58 @@ const displayedHistory = filteredByDate.slice(0, displayCount);
               {formatDate(selectedDate)}에 탐지 기록이 없습니다 
             </Text>
           ) : (
-            <>
-              {displayedHistory.map((item) => (
-  <View key={item.record_id} style={styles.historyItem}>
-    <View style={styles.historyLeft}>
-      {/* ✅ 이미지 표시 */}
-      {item.image_url ? (
-        <Image 
-          source={{ uri: item.image_url }} 
-          style={styles.thumbnail}
-        />
-      ) : (
-        <View style={styles.thumbnail} />
-      )}
-      
-      <View style={styles.historyInfo}>
-        <View style={styles.historyTitleRow}>
-          <View style={[
-            styles.statusDot,
-            item.is_deepfake ? styles.dangerDot : styles.safeDot
-          ]} />
-          <Text style={styles.historyItemTitle}>
-            {item.is_deepfake ? '수상한 딥페이크' : '안전한 이미지'}
-          </Text>
-        </View>
-        <Text style={styles.historyItemSubtitle}>자세히 보기</Text>
-        <Text style={styles.historyItemDate}>
-          {item.created_at.split(' ')[0]}
-        </Text>
-      </View>
-    </View>
-    <Text style={styles.historyItemTime}>
-      {item.created_at.split(' ')[1].substring(0, 5)}
-    </Text>
-  </View>
-))}
-              
-              {filteredByDate.length > displayCount && (
-                <TouchableOpacity 
-                  onPress={loadMore} 
-                  style={styles.loadMoreButton}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.loadMoreText}>더 보기</Text>
-                  <Ionicons name="chevron-down" size={16} color="#666" />
-                </TouchableOpacity>
-              )}
-            </>
+              <>
+    {displayedHistory.map((item) => (
+      <TouchableOpacity   
+        key={item.record_id} 
+        style={styles.historyItem}
+        onPress={() => handleHistoryItemPress(item)}
+        activeOpacity={0.7} 
+      >
+        <View style={styles.historyLeft}>
+          {item.image_url ? (
+            <Image 
+              source={{ uri: item.image_url }} 
+              style={styles.thumbnail}
+            />
+          ) : (
+            <View style={styles.thumbnail} />
           )}
+          
+          <View style={styles.historyInfo}>
+            <View style={styles.historyTitleRow}>
+              <View style={[
+                styles.statusDot,
+                item.is_deepfake ? styles.dangerDot : styles.safeDot
+              ]} />
+              <Text style={styles.historyItemTitle}>
+                {item.is_deepfake ? '수상한 딥페이크' : '안전한 이미지'}
+              </Text>
+            </View>
+            <Text style={styles.historyItemSubtitle}>자세히 보기</Text>
+            <Text style={styles.historyItemDate}>
+              {item.created_at.split(' ')[0]}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.historyItemTime}>
+          {item.created_at.split(' ')[1].substring(0, 5)}
+        </Text>
+      </TouchableOpacity>
+    ))}
+    
+    {filteredByDate.length > displayCount && (
+      <TouchableOpacity 
+        onPress={loadMore} 
+        style={styles.loadMoreButton}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.loadMoreText}>더 보기</Text>
+        <Ionicons name="chevron-down" size={16} color="#666" />
+      </TouchableOpacity>
+    )}
+  </>
+)}
         </View>
       </ScrollView>
 

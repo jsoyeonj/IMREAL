@@ -83,7 +83,7 @@ class ProtectionService:
             }
             
             response = requests.post(
-                f"{self.fastapi_url}/api/protect",
+                f"{self.fastapi_url}/add_watermark",
                 json=payload,
                 timeout=self.timeout
             )

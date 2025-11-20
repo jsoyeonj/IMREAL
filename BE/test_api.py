@@ -14,14 +14,15 @@ from pathlib import Path
 # 설정
 # ============================================
 BASE_URL = "http://localhost:8000"
+WATERMARK_URL = "http://168.131.151.81:8002"  # ✅ 워터마크 전용 서버
 TEST_EMAIL = f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}@test.com"
 TEST_PASSWORD = "testpass123!"
 TEST_NICKNAME = "테스트유저"
 
-# 테스트용 더미 파일 생성 (Windows/Mac/Linux 모두 호환)
+# 테스트용 파일 경로
 TEMP_DIR = tempfile.gettempdir()
-TEST_IMAGE_PATH = os.path.join(TEMP_DIR, "test_image.jpg")
-TEST_VIDEO_PATH = os.path.join(TEMP_DIR, "test_video.mp4")
+TEST_IMAGE_PATH = r"C:\projects\IMREAL\BE\test_image.jpg"
+TEST_VIDEO_PATH = r"C:\projects\IMREAL\BE\test_video.mp4"  # ✅ 실제 비디오 경로
 
 # 전역 변수
 token = None
@@ -98,11 +99,19 @@ def create_dummy_image():
         print_success(f"더미 이미지 생성: {TEST_IMAGE_PATH} (빈 파일)")
 
 
-def create_dummy_video():
-    """테스트용 더미 비디오 생성"""
-    with open(TEST_VIDEO_PATH, 'wb') as f:
-        f.write(b'\x00\x00\x00\x18ftypmp42')  # MP4 헤더
-    print_success(f"더미 비디오 생성: {TEST_VIDEO_PATH}")
+def check_video_exists():
+    """비디오 파일 존재 확인"""
+    if os.path.exists(TEST_VIDEO_PATH):
+        print_success(f"비디오 파일 확인: {TEST_VIDEO_PATH}")
+        return True
+    else:
+        print_error(f"비디오 파일이 없습니다: {TEST_VIDEO_PATH}")
+        print_info("더미 비디오 파일을 생성합니다...")
+        # 더미 비디오 생성
+        with open(TEST_VIDEO_PATH, 'wb') as f:
+            f.write(b'\x00\x00\x00\x18ftypmp42')  # MP4 헤더
+        print_success(f"더미 비디오 생성: {TEST_VIDEO_PATH}")
+        return True
 
 
 # ============================================
@@ -193,10 +202,9 @@ def test_analyze_image():
     url = f"{BASE_URL}/api/detection/image/"
     headers = {"Authorization": f"Token {token}"}
     
-    create_dummy_image()
     
     with open(TEST_IMAGE_PATH, 'rb') as f:
-        files = {'image': ('test.jpg', f, 'image/jpeg')}  # file → image
+        files = {'image': ('test.jpg', f, 'image/jpeg')}
         
         print_info(f"POST {url}")
         response = requests.post(url, headers=headers, files=files)
@@ -221,10 +229,11 @@ def test_analyze_video():
     url = f"{BASE_URL}/api/detection/video/"
     headers = {"Authorization": f"Token {token}"}
     
-    create_dummy_video()
+    if not check_video_exists():
+        return False
     
     with open(TEST_VIDEO_PATH, 'rb') as f:
-        files = {'video': ('test.mp4', f, 'video/mp4')}  # file → video
+        files = {'video': ('test.mp4', f, 'video/mp4')}
         
         print_info(f"POST {url}")
         response = requests.post(url, headers=headers, files=files)
@@ -304,18 +313,18 @@ def test_get_statistics():
 # 3. Protection 앱 테스트
 # ============================================
 def test_protect_image():
-    """이미지 보호 테스트"""
+    """이미지 보호 테스트 (Noise + Watermark)"""
     print_test_header("3-1. 이미지 보호")
     
     url = f"{BASE_URL}/api/protection/images/"
     headers = {"Authorization": f"Token {token}"}
     
-    create_dummy_image()
     
     with open(TEST_IMAGE_PATH, 'rb') as f:
-        files = {'files': ('test.jpg', f, 'image/jpeg')}  # image → files (복수)
+        files = {'files': ('test.jpg', f, 'image/jpeg')}
         
         print_info(f"POST {url}")
+        print_info("참고: Detection(8001) + Watermark(8002) 서버 필요")
         response = requests.post(url, headers=headers, files=files)
     
     print_response(response)
@@ -338,12 +347,14 @@ def test_protect_video():
     url = f"{BASE_URL}/api/protection/videos/"
     headers = {"Authorization": f"Token {token}"}
     
-    create_dummy_video()
+    if not check_video_exists():
+        return False
     
     with open(TEST_VIDEO_PATH, 'rb') as f:
         files = {'file': ('test.mp4', f, 'video/mp4')}
         
         print_info(f"POST {url}")
+        print_info("참고: Detection(8001) + Watermark(8002) 서버 필요")
         response = requests.post(url, headers=headers, files=files)
     
     print_response(response)
@@ -437,11 +448,10 @@ def test_capture_zoom():
     url = f"{BASE_URL}/api/zoom/sessions/{session_id}/capture/"
     headers = {"Authorization": f"Token {token}"}
     
-    create_dummy_image()
     
     with open(TEST_IMAGE_PATH, 'rb') as f:
         files = {'screenshot': ('capture.jpg', f, 'image/jpeg')}
-        data = {'participant_count': 2}  # 참가자 수 추가
+        data = {'participant_count': 2}
         
         print_info(f"POST {url}")
         response = requests.post(url, headers=headers, files=files, data=data)
@@ -515,7 +525,9 @@ def main():
 {Colors.ENDC}
 """)
     
-    print_info(f"Base URL: {BASE_URL}")
+    print_info(f"Django 서버: {BASE_URL}")
+    print_info(f"워터마크 서버: {WATERMARK_URL}")
+    print_info(f"비디오 경로: {TEST_VIDEO_PATH}")
     print_info(f"테스트 시작 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     results = []
@@ -561,11 +573,6 @@ def main():
     print(f"{Colors.FAIL}❌ 실패: {failed}개{Colors.ENDC}")
     print(f"{Colors.BOLD}성공률: {(passed/len(results)*100):.1f}%{Colors.ENDC}\n")
     
-    # 정리
-    for path in [TEST_IMAGE_PATH, TEST_VIDEO_PATH]:
-        if os.path.exists(path):
-            os.remove(path)
-            print_info(f"임시 파일 삭제: {path}")
     
     print_info(f"테스트 종료 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 

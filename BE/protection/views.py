@@ -106,6 +106,34 @@ class ImageProtectionView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
             
+            # AI 서버 호출
+            protection_service = ProtectionService()
+            result = protection_service.protect_image(s3_url, job_type)
+
+            if not result['success']:
+                job.job_status = 'failed'
+                job.error_message = result.get('error', '알 수 없는 오류')
+                job.save()
+                return Response({'error': result['error']}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # ResultUrl을 Presigned URL로 변환
+            from media_files.storage import S3Storage
+            import re
+
+            if 'results' in result:
+                for protected_info in result['results']:
+                    if 'ResultUrl' in protected_info and protected_info['ResultUrl']:
+                        original_url = protected_info['ResultUrl']
+                        
+                        # S3 키 추출
+                        match = re.search(r'amazonaws\.com/(.+?)$', original_url)
+                        if match:
+                            s3_key = match.group(1)
+                            
+                            # Presigned URL 생성
+                            s3_storage = S3Storage()
+                            protected_info['ResultUrl'] = s3_storage.get_presigned_url(s3_key)
+            
             # ✅ 결과 처리
             if 'results' in result:
                 # 새로운 API 명세 형식
@@ -213,6 +241,24 @@ class VideoProtectionView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
             
+            # ResultUrl을 Presigned URL로 변환
+            from media_files.storage import S3Storage
+            import re
+
+            if 'results' in result:
+                for protected_info in result['results']:
+                    if 'ResultUrl' in protected_info and protected_info['ResultUrl']:
+                        original_url = protected_info['ResultUrl']
+                        
+                        # S3 키 추출
+                        match = re.search(r'amazonaws\.com/(.+?)$', original_url)
+                        if match:
+                            s3_key = match.group(1)
+                            
+                            # Presigned URL 생성
+                            s3_storage = S3Storage()
+                            protected_info['ResultUrl'] = s3_storage.get_presigned_url(s3_key)
+
             # ✅ 결과 처리
             if 'results' in result:
                 # 새로운 API 명세 형식

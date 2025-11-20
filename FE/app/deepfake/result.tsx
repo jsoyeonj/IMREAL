@@ -32,32 +32,44 @@ export default function DetectionResult() {
   // ✅ 얼굴 결과 파싱
   const [faceResults, setFaceResults] = useState([]);
   
-  // 랜덤 그래프 데이터 생성
+  // ✅ 실제 데이터 기반 그래프 데이터
   const [graphData, setGraphData] = useState({ fake: 0, real: 0 });
   
   // 신고 모달 상태
   const [showReportModal, setShowReportModal] = useState(false);
   
   useEffect(() => {
+    console.log('📦 받은 params:', params);
+    console.log('📦 faceResultsStr:', faceResultsStr);
+    
     // ✅ faceResults 파싱
     if (faceResultsStr) {
       try {
         const parsed = JSON.parse(faceResultsStr);
         setFaceResults(parsed);
-        console.log('✅ 얼굴 결과:', parsed);
+        console.log('✅ 얼굴 결과 파싱 성공:', parsed);
+        
+        // ✅ 실제 데이터로 확률 계산
+        if (parsed && parsed.length > 0) {
+          // 모든 얼굴의 평균 신뢰도 계산
+          const avgRate = parsed.reduce((sum, face) => sum + face.rate, 0) / parsed.length;
+          const percentage = Math.round(avgRate * 100);
+          
+          // 딥페이크가 하나라도 있으면
+          const hasDeepfake = parsed.some(face => face.is_deepfake);
+          
+          if (hasDeepfake) {
+            setGraphData({ fake: percentage, real: 100 - percentage });
+          } else {
+            setGraphData({ fake: 100 - percentage, real: percentage });
+          }
+        }
       } catch (e) {
         console.error('❌ 얼굴 결과 파싱 오류:', e);
       }
+    } else {
+      console.warn('⚠️ faceResultsStr가 없습니다');
     }
-    
-    // 랜덤 확률 생성 (0-100)
-    const fakeScore = isSafe 
-      ? Math.floor(Math.random() * 30) + 5   // 안전: 5-35%
-      : Math.floor(Math.random() * 40) + 60; // 위험: 60-100%
-    
-    const realScore = 100 - fakeScore;
-    
-    setGraphData({ fake: fakeScore, real: realScore });
   }, [isSafe, faceResultsStr]);
 
   // 이미지 다운로드 함수
@@ -126,7 +138,7 @@ export default function DetectionResult() {
         </View>
 
         {/* ✅ 각 얼굴별 ResultUrl 표시 */}
-        {faceResults && faceResults.length > 0 && (
+        {faceResults && faceResults.length > 0 ? (
           <View style={styles.faceResultsContainer}>
             <Text style={styles.sectionTitle}>감지된 얼굴 ({faceResults.length}명)</Text>
             
@@ -146,18 +158,32 @@ export default function DetectionResult() {
                 </View>
                 
                 {/* ✅ ResultUrl이 있으면 이미지 표시 */}
-                {face.ResultUrl && (
+                {face.ResultUrl ? (
                   <View style={styles.faceImageContainer}>
                     <Image 
                       source={{ uri: face.ResultUrl }} 
                       style={styles.faceImage}
                       resizeMode="cover"
+                      onError={(error) => {
+                        console.error('❌ 이미지 로드 실패:', face.ResultUrl, error);
+                      }}
+                      onLoad={() => {
+                        console.log('✅ 이미지 로드 성공:', face.ResultUrl);
+                      }}
                     />
                     <Text style={styles.faceImageLabel}>감지된 얼굴</Text>
+                  </View>
+                ) : (
+                  <View style={styles.noImageContainer}>
+                    <Text style={styles.noImageText}>감지된 얼굴 이미지 없음</Text>
                   </View>
                 )}
               </View>
             ))}
+          </View>
+        ) : (
+          <View style={styles.noFaceContainer}>
+            <Text style={styles.noFaceText}>얼굴 정보가 없습니다</Text>
           </View>
         )}
 
@@ -282,6 +308,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     marginTop: 8,
+  },
+  noImageContainer: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+  },
+  noImageText: {
+    fontSize: 14,
+    color: '#999',
+  },
+  noFaceContainer: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    marginBottom: 24,
+  },
+  noFaceText: {
+    fontSize: 14,
+    color: '#999',
   },
   graphContainer: { marginBottom: 24 },
   barWrap: { flexDirection: 'column', gap: 8 },

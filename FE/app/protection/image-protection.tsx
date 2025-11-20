@@ -7,9 +7,14 @@ import { ImageUploader } from '../../components/deepfake/ImageUploader';
 import { ProtectionLoadingModal } from '../../components/protection/ProtectionLoadingModal';
 import { ProtectionCompleteModal } from '../../components/protection/ProtectionCompleteModal';
 import * as Sharing from 'expo-sharing';
+import { addWatermark } from '../../services/watermarkApi'; 
+import { useAuth } from '../../contexts/AuthContext'; 
+import * as FileSystem from 'expo-file-system/legacy'; 
 
 export default function ImageProtection() {
   const router = useRouter();
+  const { token } = useAuth();
+
   const {
     selectedImage,
     isLoading,
@@ -20,54 +25,81 @@ export default function ImageProtection() {
   const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
 
-  const handleProtection = () => {
-    if (!selectedImage) return;
-    console.log('이미지 보호 시작:', selectedImage.uri);
+  const handleProtection = async () => {
+  if (!selectedImage) return;
+  
+  // ✅ 로그인 확인
+  if (!token) {
+    Alert.alert('로그인 필요', '로그인 후 이용해주세요', [
+      { text: '확인', onPress: () => router.push('/login') }
+    ]);
+    return;
+  }
+  
+  console.log('🛡️ 이미지 보호 시작:', selectedImage.uri);
+  setShowLoadingModal(true);
+  
+  try {
+    // 백엔드 API 호출 (job_type: 'adversarial_noise')
+    const result: any = await addWatermark(
+      selectedImage.uri, 
+      token, 
+      'both',
+  'IMREAL'
+    );
     
-    // 로딩 모달 표시
-    setShowLoadingModal(true);
-    
-    // 5초 후 로딩 닫고 완료 표시
-    setTimeout(() => {
+    if (result.success) {
+      console.log('✅ 이미지 보호 완료:', {
+        jobId: result.jobId,
+        status: result.status
+      });
+      
       setShowLoadingModal(false);
       setShowCompleteModal(true);
-    }, 5000);
-  };
-
+    } else {
+      setShowLoadingModal(false);
+      Alert.alert('보호 실패', result.error || '다시 시도해주세요');
+    }
+    
+  } catch (error) {
+    setShowLoadingModal(false);
+    Alert.alert('오류', '이미지 보호 중 문제가 발생했습니다');
+    console.error('❌ 이미지 보호 오류:', error);
+  }
+};
   const handleCancelProtection = () => {
     setShowLoadingModal(false);
     console.log('이미지 보호 취소됨');
   };
 
   const handleDownload = async () => {
-    if (!selectedImage) return;
+  if (!selectedImage) return;
+  
+  try {
+    let localUri = selectedImage.uri;
     
-    try {
-      // Expo Sharing 사용 (Expo Go에서 작동)
-      const isAvailable = await Sharing.isAvailableAsync();
-      
-      if (!isAvailable) {
-        Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
-        return;
-      }
-
-      // 공유 메뉴 열기 (사용자가 다운로드 폴더 선택 가능)
-      await Sharing.shareAsync(selectedImage.uri, {
-        mimeType: 'image/jpeg',
-        dialogTitle: '보호된 이미지 저장하기',
-      });
-
-      console.log('공유 완료');
-      
-      // 모달 닫고 홈으로
-      setShowCompleteModal(false);
-      router.push('/home');
-      
-    } catch (error) {
-      console.error('공유 실패:', error);
-      Alert.alert('공유 실패', '이미지 공유 중 오류가 발생했습니다.');
+    // 공유
+    const isAvailable = await Sharing.isAvailableAsync();
+    
+    if (!isAvailable) {
+      Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
+      return;
     }
-  };
+
+    await Sharing.shareAsync(localUri, {
+      mimeType: 'image/jpeg',
+      dialogTitle: '보호된 이미지 저장하기',
+    });
+
+    console.log('✅ 공유 완료');
+    setShowCompleteModal(false);
+    router.push('/home');
+    
+  } catch (error) {
+    console.error('❌ 공유 실패:', error);
+    Alert.alert('공유 실패', '이미지 공유 중 오류가 발생했습니다.');
+  }
+};
 
   return (
     <SafeAreaView style={styles.container}>

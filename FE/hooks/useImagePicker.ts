@@ -8,6 +8,8 @@ interface ImageInfo {
   width: number;
   height: number;
   type?: string;
+  mediaType?: 'image' | 'video';
+  duration?: number; 
 }
 
 export const useImagePicker = () => {
@@ -48,11 +50,54 @@ export const useImagePicker = () => {
           width: image.width,
           height: image.height,
           type: image.type,
+          mediaType: 'image',
         });
       }
     } catch (error) {
       console.error('이미지 선택 오류:', error);
       Alert.alert('오류', '이미지를 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  const pickVideoFromGallery = async () => {
+    try {
+      setIsLoading(true);
+
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          '권한 필요',
+          '갤러리 접근 권한이 필요합니다. 설정에서 권한을 허용해주세요.',
+          [{ text: '확인' }]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos'],  // ✅ 비디오만 선택
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const media = result.assets[0];
+        console.log('🎥 선택된 비디오:', media.uri);
+        console.log('비디오 길이:', media.duration);
+        
+        setSelectedImage({
+          uri: media.uri,
+          width: media.width,
+          height: media.height,
+          type: media.type,
+          mediaType: 'video',
+          duration: media.duration ?? 0,
+        });
+      }
+    } catch (error) {
+      console.error('비디오 선택 오류:', error);
+      Alert.alert('오류', '비디오를 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -88,6 +133,7 @@ export const useImagePicker = () => {
           width: image.width,
           height: image.height,
           type: image.type,
+          mediaType: 'image',
         });
       }
     } catch (error) {
@@ -107,6 +153,7 @@ export const useImagePicker = () => {
     selectedImage,
     isLoading,
     pickImageFromGallery,
+    pickVideoFromGallery,
     takePicture,
     clearImage,
   };

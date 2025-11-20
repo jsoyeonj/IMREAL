@@ -12,12 +12,14 @@ interface DetectionLoadingModalProps {
   visible: boolean;
   onCancel: () => void;
   mode?: 'single' | 'group'; // 싱글(청록) vs 그룹(보라)
+  mediaType?: 'image' | 'video'; // ✅ 이미지 vs 영상
 }
 
 export function DetectionLoadingModal({
   visible,
   onCancel,
   mode = 'single',
+  mediaType = 'image', // ✅ 기본값 'image'
 }: DetectionLoadingModalProps) {
   const progressAnim = useRef(new Animated.Value(0)).current;
 
@@ -41,6 +43,9 @@ export function DetectionLoadingModal({
 
   // 모드에 따른 색상
   const barColor = mode === 'group' ? '#6C63FF' : '#4ECDC4';
+  
+  // ✅ 미디어 타입에 따른 텍스트
+  const mediaText = mediaType === 'video' ? '영상' : '이미지';
 
   return (
     <Modal
@@ -61,8 +66,8 @@ export function DetectionLoadingModal({
             />
           </View>
 
-          {/* 메시지 */}
-          <Text style={styles.message}>이미지를 분석 중이에요.....</Text>
+          {/* 메시지 - ✅ 동적으로 변경 */}
+          <Text style={styles.message}>{mediaText}를 분석 중이에요.....</Text>
 
           {/* 취소 버튼 */}
           <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>

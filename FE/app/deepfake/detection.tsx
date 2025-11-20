@@ -1,7 +1,7 @@
 // FE/app/deepfake/detection.tsx
 // @ts-nocheck
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useImagePicker } from '../../hooks/useImagePicker';
@@ -9,7 +9,7 @@ import { ImageUploader } from '../../components/deepfake/ImageUploader';
 import { ToggleMode } from '../../components/deepfake/ToggleMode';
 import { DetectionLoadingModal } from '../../components/deepfake/DetectionLoadingModal';
 import { DetectionResultModal } from '../../components/deepfake/DetectionResultModal';
-import { analyzeImage } from '../../services/deepfakeApi';
+import { analyzeImage, analyzeVideo } from '../../services/deepfakeApi';
 import { useAuth } from '../../contexts/AuthContext';
 import * as ImageManipulator from 'expo-image-manipulator';
 
@@ -21,18 +21,27 @@ export default function DeepfakeDetection() {
     selectedImage,
     isLoading,
     pickImageFromGallery,
+    pickVideoFromGallery,
     clearImage,
   } = useImagePicker();
 
   const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
   const [detectionResult, setDetectionResult] = useState<boolean>(true);
-  const [faceResults, setFaceResults] = useState([]); // ✅ 얼굴 결과 저장
+  const [faceResults, setFaceResults] = useState([]);
+  const [mediaMode, setMediaMode] = useState<'image' | 'video'>('image');
+
+  const handleUploadClick = () => {
+    if (mediaMode === 'image') {
+      pickImageFromGallery();
+    } else {
+      pickVideoFromGallery();
+    }
+  };
 
   const handleDetection = async () => {
     if (!selectedImage) return;
     
-    // 로그인 확인
     if (!token) {
       Alert.alert('로그인 필요', '로그인 후 이용해주세요', [
         { text: '확인', onPress: () => router.push('/login') }
@@ -43,48 +52,72 @@ export default function DeepfakeDetection() {
     setShowLoadingModal(true);
     
     try {
-      let imageUri = selectedImage.uri;
-      
-      // HEIC 파일이면 JPEG로 변환
-      if (imageUri.toLowerCase().endsWith('.heic') || imageUri.toLowerCase().endsWith('.heif')) {
-        console.log('🔄 HEIC → JPEG 변환 시작');
+      if (selectedImage.mediaType === 'video') {
+        console.log('🎥 비디오 분석 시작:', selectedImage.uri);
+        const result = await analyzeVideo(selectedImage.uri, token);
         
-        const manipResult = await ImageManipulator.manipulateAsync(
-          imageUri,
-          [],
-          { 
-            compress: 0.8, 
-            format: ImageManipulator.SaveFormat.JPEG 
-          }
-        );
+        if (result.success) {
+          const hasDeepfake = result.faceResults?.some(face => face.is_deepfake) || false;
+          const isSafe = !hasDeepfake;
+          
+          setDetectionResult(isSafe);
+          setFaceResults(result.faceResults || []);
+          
+          setShowLoadingModal(false);
+          setShowResultModal(true);
+          
+          console.log('✅ 비디오 분석 완료:', {
+            isSafe,
+            faceCount: result.faceCount,
+            faces: result.faceResults
+          });
+        } else {
+          setShowLoadingModal(false);
+          Alert.alert('분석 실패', result.error || '다시 시도해주세요');
+        }
         
-        imageUri = manipResult.uri;
-        console.log('✅ JPEG 변환 완료:', imageUri);
-      }
-      
-      console.log('🔍 탐지 시작:', imageUri);
-      
-      const result = await analyzeImage(imageUri, token);
-      
-      if (result.success) {
-        // ✅ faceResults 배열에서 딥페이크 여부 확인
-        const hasDeepfake = result.faceResults?.some(face => face.is_deepfake) || false;
-        const isSafe = !hasDeepfake;
-        
-        setDetectionResult(isSafe);
-        setFaceResults(result.faceResults || []); // ✅ 얼굴 결과 저장
-        
-        setShowLoadingModal(false);
-        setShowResultModal(true);
-        
-        console.log('✅ 분석 완료:', {
-          isSafe,
-          faceCount: result.faceCount,
-          faces: result.faceResults
-        });
       } else {
-        setShowLoadingModal(false);
-        Alert.alert('분석 실패', result.error || '다시 시도해주세요');
+        let imageUri = selectedImage.uri;
+        
+        if (imageUri.toLowerCase().endsWith('.heic') || imageUri.toLowerCase().endsWith('.heif')) {
+          console.log('🔄 HEIC → JPEG 변환 시작');
+          
+          const manipResult = await ImageManipulator.manipulateAsync(
+            imageUri,
+            [],
+            { 
+              compress: 0.8, 
+              format: ImageManipulator.SaveFormat.JPEG 
+            }
+          );
+          
+          imageUri = manipResult.uri;
+          console.log('✅ JPEG 변환 완료:', imageUri);
+        }
+        
+        console.log('🔍 이미지 분석 시작:', imageUri);
+        
+        const result = await analyzeImage(imageUri, token);
+        
+        if (result.success) {
+          const hasDeepfake = result.faceResults?.some(face => face.is_deepfake) || false;
+          const isSafe = !hasDeepfake;
+          
+          setDetectionResult(isSafe);
+          setFaceResults(result.faceResults || []);
+          
+          setShowLoadingModal(false);
+          setShowResultModal(true);
+          
+          console.log('✅ 이미지 분석 완료:', {
+            isSafe,
+            faceCount: result.faceCount,
+            faces: result.faceResults
+          });
+        } else {
+          setShowLoadingModal(false);
+          Alert.alert('분석 실패', result.error || '다시 시도해주세요');
+        }
       }
       
     } catch (error) {
@@ -110,26 +143,48 @@ export default function DeepfakeDetection() {
       params: {
         imageUri: selectedImage?.uri || '',
         isSafe: detectionResult.toString(),
-        faceResults: JSON.stringify(faceResults), // ✅ 얼굴 결과 전달
+        faceResults: JSON.stringify(faceResults),
       },
     });
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 상단 헤더 */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>DeepFake 탐지</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* 모드 토글 (싱글 활성) */}
         <ToggleMode
           active="single"
           routes={{ single: '/deepfake/detection', group: '/deepfake/group-detection' }}
         />
 
-        {/* 일러스트 */}
+        <View style={styles.mediaToggle}>
+          <TouchableOpacity
+            style={[styles.toggleButton, mediaMode === 'image' && styles.toggleButtonActive]}
+            onPress={() => {
+              setMediaMode('image');
+              clearImage();
+            }}
+          >
+            <Text style={[styles.toggleText, mediaMode === 'image' && styles.toggleTextActive]}>
+              이미지
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.toggleButton, mediaMode === 'video' && styles.toggleButtonActive]}
+            onPress={() => {
+              setMediaMode('video');
+              clearImage();
+            }}
+          >
+            <Text style={[styles.toggleText, mediaMode === 'video' && styles.toggleTextActive]}>
+              영상
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.illustrationWrap}>
           <Image
             source={require('../../assets/images/illustrations/deepfake-illustration.png')}
@@ -138,23 +193,23 @@ export default function DeepfakeDetection() {
           />
         </View>
 
-        {/* 타이틀 & 설명 */}
         <View style={styles.textSection}>
-          <Text style={styles.mainTitle}>이미지로부터{'\n'}Deepfake 탐지</Text>
+          <Text style={styles.mainTitle}>
+            {mediaMode === 'image' ? '이미지로부터' : '영상으로부터'}{'\n'}Deepfake 탐지
+          </Text>
           <Text style={styles.description}>
-            업로드한 이미지에서 사람을 찾아내고,{'\n'}
+            업로드한 {mediaMode === 'image' ? '이미지' : '영상'}에서 사람을 찾아내고,{'\n'}
             찾아낸 사람이 deepfake인지 탐지합니다.
           </Text>
         </View>
 
-        {/* 업로드(1버튼) + 미리보기 */}
         <ImageUploader
           selectedImage={selectedImage}
           isLoading={isLoading}
-          onPickImage={pickImageFromGallery}
+          onPickImage={handleUploadClick}
+          label={mediaMode === 'image' ? '이미지 업로드' : '영상 업로드'}
         />
 
-        {/* 선택 후에만 노출되는 액션 */}
         {selectedImage && (
           <View style={styles.actionRow}>
             <Text style={styles.linkBtn} onPress={clearImage}>다시 선택</Text>
@@ -163,14 +218,13 @@ export default function DeepfakeDetection() {
         )}
       </ScrollView>
 
-      {/* 로딩 모달 - 싱글 모드 (청록색) */}
       <DetectionLoadingModal
         visible={showLoadingModal}
         onCancel={handleCancelDetection}
         mode="single"
+        mediaType={selectedImage?.mediaType || 'image'}
       />
 
-      {/* 결과 모달 */}
       <DetectionResultModal
         visible={showResultModal}
         onClose={handleCloseResult}
@@ -201,6 +255,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, 
     paddingTop: 24, 
     paddingBottom: 40 
+  },
+  mediaToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 24,
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  toggleButtonActive: {
+    backgroundColor: '#4ECDC4',
+  },
+  toggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  toggleTextActive: {
+    color: '#fff',
   },
   illustrationWrap: { 
     alignItems: 'center', 

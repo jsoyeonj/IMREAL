@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator, ImageSourcePropType } from 'react-native';
+import { Video ,ResizeMode } from 'expo-av'; 
 
 interface ImageUploaderProps {
-  selectedImage: { uri: string; width: number; height: number } | null;
+  selectedImage: { uri: string; width: number; height: number; mediaType?: 'image' | 'video'; duration?: number;  } | null;
   isLoading: boolean;
   onPickImage: () => void;
 
@@ -27,10 +28,28 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       {/* 선택된 경우에만 미리보기 표시 */}
       {selectedImage && (
         <View style={styles.previewBox}>
-          <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} resizeMode="cover" />
-          <Text style={styles.previewText}>이미지가 선택되었습니다</Text>
+          {selectedImage.mediaType === 'video' ? (
+            <>
+              <Video
+                source={{ uri: selectedImage.uri }}
+                style={styles.previewImage}
+                useNativeControls
+                resizeMode={ResizeMode.CONTAIN}
+                isLooping
+              />
+              <Text style={styles.previewText}>
+                비디오가 선택되었습니다 ({Math.round((selectedImage.duration || 0) / 1000)}초)
+              </Text>
+            </>
+          ) : (
+            <>
+              <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} resizeMode="cover" />
+              <Text style={styles.previewText}>이미지가 선택되었습니다</Text>
+            </>
+          )}
         </View>
       )}
+
 
       {/* 업로드 버튼 */}
       <TouchableOpacity

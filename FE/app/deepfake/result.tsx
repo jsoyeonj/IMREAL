@@ -49,20 +49,35 @@ export default function DetectionResult() {
         setFaceResults(parsed);
         console.log('✅ 얼굴 결과 파싱 성공:', parsed);
         
-        // ✅ 실제 데이터로 확률 계산
+        // ✅ 수정된 확률 계산 로직
         if (parsed && parsed.length > 0) {
-          // 모든 얼굴의 평균 신뢰도 계산
-          const avgRate = parsed.reduce((sum, face) => sum + face.rate, 0) / parsed.length;
-          const percentage = Math.round(avgRate * 100);
+          // 딥페이크와 진짜를 분리
+          const deepfakeFaces = parsed.filter(face => face.is_deepfake);
+          const realFaces = parsed.filter(face => !face.is_deepfake);
           
-          // 딥페이크가 하나라도 있으면
-          const hasDeepfake = parsed.some(face => face.is_deepfake);
+          let fakePercentage = 0;
+          let realPercentage = 0;
           
-          if (hasDeepfake) {
-            setGraphData({ fake: percentage, real: 100 - percentage });
+          if (deepfakeFaces.length > 0) {
+            // 딥페이크가 하나라도 있으면: 딥페이크들의 평균 신뢰도
+            const avgDeepfakeRate = deepfakeFaces.reduce((sum, face) => sum + face.rate, 0) / deepfakeFaces.length;
+            fakePercentage = Math.round(avgDeepfakeRate * 100);
+            realPercentage = 100 - fakePercentage;
           } else {
-            setGraphData({ fake: 100 - percentage, real: percentage });
+            // 모두 진짜면: 진짜들의 평균 신뢰도
+            const avgRealRate = realFaces.reduce((sum, face) => sum + face.rate, 0) / realFaces.length;
+            realPercentage = Math.round(avgRealRate * 100);
+            fakePercentage = 100 - realPercentage;
           }
+          
+          setGraphData({ fake: fakePercentage, real: realPercentage });
+          
+          console.log('📊 계산된 확률:', {
+            deepfakeFaces: deepfakeFaces.length,
+            realFaces: realFaces.length,
+            fake: fakePercentage,
+            real: realPercentage
+          });
         }
       } catch (e) {
         console.error('❌ 얼굴 결과 파싱 오류:', e);
@@ -137,7 +152,7 @@ export default function DetectionResult() {
           </Text>
         </View>
 
-        {/* ✅ 각 얼굴별 ResultUrl 표시 */}
+        {/* ✅ 각 얼굴별 결과 표시 */}
         {faceResults && faceResults.length > 0 ? (
           <View style={styles.faceResultsContainer}>
             <Text style={styles.sectionTitle}>감지된 얼굴 ({faceResults.length}명)</Text>
@@ -145,7 +160,7 @@ export default function DetectionResult() {
             {faceResults.map((face, index) => (
               <View key={index} style={styles.faceCard}>
                 <View style={styles.faceInfo}>
-                  <Text style={styles.faceId}>얼굴 #{face.face_id}</Text>
+                  <Text style={styles.faceId}>얼굴 #{face.face_id || index}</Text>
                   <Text style={[
                     styles.faceStatus,
                     { color: face.is_deepfake ? '#FF6B6B' : '#4ECDC4' }
@@ -223,7 +238,10 @@ export default function DetectionResult() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#fff' 
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -233,9 +251,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  backButton: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#000' },
-  content: { paddingHorizontal: 20, paddingVertical: 24 },
+  backButton: { 
+    padding: 4 
+  },
+  headerTitle: { 
+    fontSize: 18, 
+    fontWeight: '700', 
+    color: '#000' 
+  },
+  content: { 
+    paddingHorizontal: 20, 
+    paddingVertical: 24 
+  },
   imageContainer: {
     width: '100%',
     height: 300,
@@ -244,8 +271,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     backgroundColor: '#f5f5f5',
   },
-  uploadedImage: { width: '100%', height: '100%' },
-  messageContainer: { marginBottom: 24 },
+  uploadedImage: { 
+    width: '100%', 
+    height: '100%' 
+  },
+  messageContainer: { 
+    marginBottom: 24 
+  },
   messageTitle: {
     fontSize: 24,
     fontWeight: '800',
@@ -260,7 +292,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 20,
   },
-  // ✅ 얼굴 결과 스타일
   faceResultsContainer: {
     marginBottom: 24,
   },
@@ -271,77 +302,95 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   faceCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#f9f9f9',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   faceInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 12,
   },
   faceId: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#111',
+    marginBottom: 4,
   },
   faceStatus: {
     fontSize: 14,
     fontWeight: '600',
+    marginBottom: 4,
   },
   faceConfidence: {
     fontSize: 14,
     color: '#666',
   },
   faceImageContainer: {
-    alignItems: 'center',
+    marginTop: 8,
   },
   faceImage: {
-    width: width - 88,
-    height: 200,
+    width: '100%',
+    height: 150,
     borderRadius: 8,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#e0e0e0',
   },
   faceImageLabel: {
     fontSize: 12,
     color: '#999',
+    textAlign: 'center',
     marginTop: 8,
   },
   noImageContainer: {
     padding: 20,
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#f0f0f0',
     borderRadius: 8,
+    marginTop: 8,
   },
   noImageText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#999',
   },
   noFaceContainer: {
     padding: 20,
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
     marginBottom: 24,
   },
   noFaceText: {
     fontSize: 14,
     color: '#999',
   },
-  graphContainer: { marginBottom: 24 },
-  barWrap: { flexDirection: 'column', gap: 8 },
+  graphContainer: {
+    marginBottom: 24,
+  },
+  barWrap: {
+    width: '100%',
+  },
   bar: {
     height: 40,
-    borderRadius: 8,
     justifyContent: 'center',
     paddingHorizontal: 12,
+    marginBottom: 8,
+    borderRadius: 8,
   },
-  fakeBar: { backgroundColor: '#FF6B6B' },
-  realBar: { backgroundColor: '#4ECDC4' },
-  barLabel: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  actions: { gap: 12 },
+  fakeBar: {
+    backgroundColor: '#FF6B6B',
+  },
+  realBar: {
+    backgroundColor: '#4ECDC4',
+  },
+  barLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  actions: {
+    gap: 12,
+  },
   downloadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -351,5 +400,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
   },
-  downloadBtnText: { fontSize: 16, fontWeight: '600', color: '#fff' },
+  downloadBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
 });

@@ -65,17 +65,41 @@ class ImageAnalysisView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
             
-            # ✅ 전체 판정 계산
+            # AI 분석
+            ai_service = AIModelService()
+            result = ai_service.analyze_image(s3_url)
+
+            if not result['success']:
+                return Response(...)
+
+            # ✅ ResultUrl을 Presigned URL로 변환 (먼저!)
+            from media_files.storage import S3Storage
+            import re
+
+            for face in result['face_quality_scores']:  # ← result에서 직접!
+                if 'ResultUrl' in face and face['ResultUrl']:
+                    original_url = face['ResultUrl']
+                    
+                    # S3 키 추출
+                    match = re.search(r'amazonaws\.com/(.+?)$', original_url)
+                    if match:
+                        s3_key = match.group(1)
+                        
+                        # Presigned URL 생성
+                        s3_storage = S3Storage()
+                        face['ResultUrl'] = s3_storage.get_presigned_url(s3_key)
+
+            # ✅ 이제 변환된 face_quality_scores로 판정 계산
             face_scores = result['face_quality_scores']
             is_any_deepfake = any(face['is_deepfake'] for face in face_scores)
             avg_confidence = sum(face['rate'] for face in face_scores) / len(face_scores) if face_scores else 0
-            
+
             # 분석 결과 결정
             if is_any_deepfake:
                 analysis_result = 'deepfake' if avg_confidence >= 0.8 else 'suspicious'
             else:
                 analysis_result = 'safe'
-            
+
             # 분석 기록 저장
             record = AnalysisRecord.objects.create(
                 user=request.user,
@@ -157,11 +181,35 @@ class VideoAnalysisView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
             
-            # ✅ 전체 판정 계산 (새로운 API 명세에 맞춤)
+            # AI 분석
+            ai_service = AIModelService()
+            result = ai_service.analyze_image(s3_url)
+
+            if not result['success']:
+                return Response(...)
+
+            # ✅ ResultUrl을 Presigned URL로 변환 (먼저!)
+            from media_files.storage import S3Storage
+            import re
+
+            for face in result['face_quality_scores']:  # ← result에서 직접!
+                if 'ResultUrl' in face and face['ResultUrl']:
+                    original_url = face['ResultUrl']
+                    
+                    # S3 키 추출
+                    match = re.search(r'amazonaws\.com/(.+?)$', original_url)
+                    if match:
+                        s3_key = match.group(1)
+                        
+                        # Presigned URL 생성
+                        s3_storage = S3Storage()
+                        face['ResultUrl'] = s3_storage.get_presigned_url(s3_key)
+
+            # ✅ 이제 변환된 face_quality_scores로 판정 계산
             face_scores = result['face_quality_scores']
             is_any_deepfake = any(face['is_deepfake'] for face in face_scores)
             avg_confidence = sum(face['rate'] for face in face_scores) / len(face_scores) if face_scores else 0
-            
+
             # 분석 결과 결정
             if is_any_deepfake:
                 analysis_result = 'deepfake' if avg_confidence >= 0.8 else 'suspicious'

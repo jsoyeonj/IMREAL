@@ -55,7 +55,7 @@ class ImageProtectionRequestSerializer(serializers.Serializer):
     
     files = serializers.ListField(
         child=serializers.ImageField(),
-        max_length=10,  # 최대 10장
+        max_length=10,
         min_length=1,
         help_text="보호할 이미지 파일 (최대 10장)"
     )
@@ -63,6 +63,13 @@ class ImageProtectionRequestSerializer(serializers.Serializer):
         choices=['adversarial_noise', 'watermark', 'both'],
         default='both',
         help_text="보호 방식"
+    )
+    # ✅ 추가
+    watermark_text = serializers.CharField(
+        max_length=100,
+        required=False,
+        default='IMREAL',
+        help_text="워터마크에 삽입할 텍스트"
     )
 
 
@@ -75,23 +82,20 @@ class VideoProtectionRequestSerializer(serializers.Serializer):
         default='both',
         help_text="보호 방식"
     )
+    # ✅ 추가
+    watermark_text = serializers.CharField(
+        max_length=100,
+        required=False,
+        default='IMREAL',
+        help_text="워터마크에 삽입할 텍스트"
+    )
     
     def validate_file(self, value):
-        """영상 파일 검증"""
-        
-        # 파일 확장자 검증
         ext = value.name.split('.')[-1].lower()
         if ext not in ['mp4', 'mov', 'avi']:
-            raise serializers.ValidationError(
-                "MP4, MOV, AVI 파일만 업로드 가능합니다."
-            )
-        
-        # 파일 크기 검증 (500MB)
+            raise serializers.ValidationError("MP4, MOV, AVI 파일만 업로드 가능합니다.")
         if value.size > 500 * 1024 * 1024:
-            raise serializers.ValidationError(
-                "파일 크기는 500MB 이하여야 합니다."
-            )
-        
+            raise serializers.ValidationError("파일 크기는 500MB 이하여야 합니다.")
         return value
 
 

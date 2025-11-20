@@ -22,18 +22,15 @@ class ImageProtectionView(APIView):
         serializer = ImageProtectionRequestSerializer(data=request.data)
         
         if not serializer.is_valid():
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         uploaded_files = serializer.validated_data['files']
         job_type = serializer.validated_data['job_type']
+        # ✅ 워터마크 텍스트 받기
+        watermark_text = serializer.validated_data.get('watermark_text', 'IMREAL')
         
         file_service = FileService(request.user)
-        
         media_files = []
-        file_identifiers = []
         
         try:
             for file in uploaded_files:
@@ -42,26 +39,9 @@ class ImageProtectionView(APIView):
                     file_type='image',
                     purpose='protection',
                     is_temporary=False,
-                    use_s3=settings.USE_S3_FOR_PROTECTION  # ✅ 환경 변수로 제어
+                    use_s3=settings.USE_S3_FOR_PROTECTION
                 )
                 media_files.append(media_file)
-                
-                # ✅ S3 키 또는 로컬 경로 전달
-                if media_file.storage_type == 's3':
-                    # AI 서버에 S3 키 전달
-                    file_identifiers.append({
-                        'type': 's3',
-                        'file_id': media_file.file_id,
-                        's3_bucket': media_file.s3_bucket,
-                        's3_key': media_file.s3_key
-                    })
-                else:
-                    # 로컬 경로 전달
-                    file_identifiers.append({
-                        'type': 'local',
-                        'file_id': media_file.file_id,
-                        'path': os.path.join(settings.MEDIA_ROOT, media_file.file_path)
-                    })
             
             original_files_data = [
                 {
@@ -83,7 +63,7 @@ class ImageProtectionView(APIView):
                 progress_percentage=0.0
             )
             
-            # ✅ S3 URL 생성
+            # S3 URL 생성
             from media_files.storage import S3Storage
             
             if media_files[0].storage_type == 's3':
@@ -92,51 +72,32 @@ class ImageProtectionView(APIView):
             else:
                 s3_url = request.build_absolute_uri(f'/media/{media_files[0].file_path}')
             
-            # AI 서버 호출
+            # ✅ AI 서버 호출 (watermark_text 전달)
             protection_service = ProtectionService()
-            result = protection_service.protect_image(s3_url, job_type)
+            result = protection_service.protect_image(s3_url, job_type, watermark_text)
             
-            if not result['success']:
-                job.job_status = 'failed'
-                job.error_message = result.get('error', '알 수 없는 오류')
-                job.save()
-                
-                return Response(
-                    {'error': result['error']},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-            
-            # AI 서버 호출
-            protection_service = ProtectionService()
-            result = protection_service.protect_image(s3_url, job_type)
-
             if not result['success']:
                 job.job_status = 'failed'
                 job.error_message = result.get('error', '알 수 없는 오류')
                 job.save()
                 return Response({'error': result['error']}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            
             # ResultUrl을 Presigned URL로 변환
             from media_files.storage import S3Storage
             import re
-
+            
             if 'results' in result:
                 for protected_info in result['results']:
                     if 'ResultUrl' in protected_info and protected_info['ResultUrl']:
                         original_url = protected_info['ResultUrl']
-                        
-                        # S3 키 추출
                         match = re.search(r'amazonaws\.com/(.+?)$', original_url)
                         if match:
                             s3_key = match.group(1)
-                            
-                            # Presigned URL 생성
                             s3_storage = S3Storage()
                             protected_info['ResultUrl'] = s3_storage.get_presigned_url(s3_key)
             
-            # ✅ 결과 처리
+            # 결과 처리
             if 'results' in result:
-                # 새로운 API 명세 형식
                 protected_files_data = []
                 for idx, protected_info in enumerate(result['results']):
                     protected_files_data.append({
@@ -144,11 +105,7 @@ class ImageProtectionView(APIView):
                         'ResultUrl': protected_info.get('ResultUrl'),
                         'file_name': media_files[idx].original_name if idx < len(media_files) else 'unknown'
                     })
-            elif 'protected_files' in result:
-                # 이전 형식 (하위 호환)
-                protected_files_data = result['protected_files']
             else:
-                # Mock 응답일 경우
                 protected_files_data = []
             
             job.protected_files = protected_files_data
@@ -156,18 +113,15 @@ class ImageProtectionView(APIView):
             job.progress_percentage = 100.0
             job.save()
             
-            # ✅ S3 URL만 반환
             return Response({
                 'job_id': job.job_id,
                 'status': 'completed',
-                'protected_files': protected_files_data  # [{'original_file_id': 1, 's3_url': '...', 'file_name': '...'}]
+                'protected_files': protected_files_data
             }, status=status.HTTP_201_CREATED)
         
         except ValueError as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class VideoProtectionView(APIView):
@@ -177,13 +131,12 @@ class VideoProtectionView(APIView):
         serializer = VideoProtectionRequestSerializer(data=request.data)
         
         if not serializer.is_valid():
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         video = serializer.validated_data['file']
         job_type = serializer.validated_data['job_type']
+        # ✅ 워터마크 텍스트 받기
+        watermark_text = serializer.validated_data.get('watermark_text', 'IMREAL')
         
         file_service = FileService(request.user)
         
@@ -193,23 +146,8 @@ class VideoProtectionView(APIView):
                 file_type='video',
                 purpose='protection',
                 is_temporary=False,
-                use_s3=settings.USE_S3_FOR_PROTECTION  # ✅ S3에 저장
+                use_s3=settings.USE_S3_FOR_PROTECTION
             )
-            
-            # ✅ S3 키 또는 로컬 경로 전달
-            if media_file.storage_type == 's3':
-                file_identifier = {
-                    'type': 's3',
-                    'file_id': media_file.file_id,
-                    's3_bucket': media_file.s3_bucket,
-                    's3_key': media_file.s3_key
-                }
-            else:
-                file_identifier = {
-                    'type': 'local',
-                    'file_id': media_file.file_id,
-                    'path': os.path.join(settings.MEDIA_ROOT, media_file.file_path)
-                }
             
             original_files_data = [{
                 'file_id': media_file.file_id,
@@ -228,50 +166,45 @@ class VideoProtectionView(APIView):
                 progress_percentage=0.0
             )
             
+            # S3 URL 생성
+            from media_files.storage import S3Storage
+            
+            if media_file.storage_type == 's3':
+                s3_storage = S3Storage()
+                s3_url = s3_storage.get_presigned_url(media_file.s3_key)
+            else:
+                s3_url = request.build_absolute_uri(f'/media/{media_file.file_path}')
+            
+            # ✅ AI 서버 호출 (watermark_text 전달)
             protection_service = ProtectionService()
-            result = protection_service.protect_video(file_identifier, job_type)
+            result = protection_service.protect_video(s3_url, job_type, watermark_text)
             
             if not result['success']:
                 job.job_status = 'failed'
                 job.error_message = result.get('error', '알 수 없는 오류')
                 job.save()
-                
-                return Response(
-                    {'error': result['error']},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
+                return Response({'error': result['error']}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             # ResultUrl을 Presigned URL로 변환
             from media_files.storage import S3Storage
             import re
-
+            
             if 'results' in result:
                 for protected_info in result['results']:
                     if 'ResultUrl' in protected_info and protected_info['ResultUrl']:
                         original_url = protected_info['ResultUrl']
-                        
-                        # S3 키 추출
                         match = re.search(r'amazonaws\.com/(.+?)$', original_url)
                         if match:
                             s3_key = match.group(1)
-                            
-                            # Presigned URL 생성
                             s3_storage = S3Storage()
                             protected_info['ResultUrl'] = s3_storage.get_presigned_url(s3_key)
-
-            # ✅ 결과 처리
+            
+            # 결과 처리
             if 'results' in result:
-                # 새로운 API 명세 형식
                 job.protected_files = result['results']
                 protected_url = result['results'][0].get('ResultUrl') if result['results'] else None
                 protected_filename = media_file.original_name
-            elif 's3_url' in result:
-                # 이전 형식 (하위 호환)
-                protected_url = result['s3_url']
-                protected_filename = result.get('file_name', media_file.original_name)
-                job.protected_files = [{'s3_url': protected_url, 'file_name': protected_filename}]
             else:
-                # Mock 응답
                 protected_url = None
                 protected_filename = media_file.original_name
                 job.protected_files = []
@@ -280,19 +213,15 @@ class VideoProtectionView(APIView):
             job.progress_percentage = 100.0
             job.save()
             
-            # ✅ 응답
             return Response({
                 'job_id': job.job_id,
                 'status': 'completed',
-                'protected_url': protected_url,  # ← s3_url → protected_url
+                'protected_url': protected_url,
                 'file_name': protected_filename
             }, status=status.HTTP_201_CREATED)
         
         except ValueError as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProtectionJobListView(generics.ListAPIView):

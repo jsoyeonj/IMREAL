@@ -218,6 +218,8 @@ VIDEO_ALLOWED_EXTENSIONS = ['mp4', 'mov', 'avi']
 FASTAPI_URL = os.getenv('FASTAPI_URL', 'http://localhost:8001')
 AI_REQUEST_TIMEOUT = 300  # 5분
 
+FASTAPI_WATERMARK_URL = os.getenv('FASTAPI_WATERMARK_URL', 'http://localhost:8002')
+
 
 # 로깅 설정
 LOGGING = {

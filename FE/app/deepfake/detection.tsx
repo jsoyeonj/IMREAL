@@ -27,68 +27,72 @@ export default function DeepfakeDetection() {
   const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
   const [detectionResult, setDetectionResult] = useState<boolean>(true);
+  const [faceResults, setFaceResults] = useState([]); // ✅ 얼굴 결과 저장
 
   const handleDetection = async () => {
-  if (!selectedImage) return;
-  
-  // 로그인 확인
-  if (!token) {
-    Alert.alert('로그인 필요', '로그인 후 이용해주세요', [
-      { text: '확인', onPress: () => router.push('/login') }
-    ]);
-    return;
-  }
-  
-  setShowLoadingModal(true);
-  
-  try {
-    let imageUri = selectedImage.uri;  // ✅ 여기 추가!
+    if (!selectedImage) return;
     
-    // ✅ HEIC 파일이면 JPEG로 변환 (여기부터 추가!)
-    if (imageUri.toLowerCase().endsWith('.heic') || imageUri.toLowerCase().endsWith('.heif')) {
-      console.log('🔄 HEIC → JPEG 변환 시작');
-      
-      const manipResult = await ImageManipulator.manipulateAsync(
-        imageUri,
-        [],
-        { 
-          compress: 0.8, 
-          format: ImageManipulator.SaveFormat.JPEG 
-        }
-      );
-      
-      imageUri = manipResult.uri;
-      console.log('✅ JPEG 변환 완료:', imageUri);
-    }
-    // ✅ 여기까지 추가!
-    
-    console.log('🔍 탐지 시작:', imageUri);  // ✅ selectedImage.uri를 imageUri로 변경!
-    
-    const result = await analyzeImage(imageUri, token);  // ✅ 여기도 imageUri로 변경!
-    
-    if (result.success) {
-      const isSafe = result.analysisResult === 'safe';
-      setDetectionResult(isSafe);
-      
-      setShowLoadingModal(false);
-      setShowResultModal(true);
-      
-      console.log('✅ 분석 완료:', {
-        isSafe,
-        confidence: result.confidenceScore,
-        result: result.analysisResult
-      });
-    } else {
-      setShowLoadingModal(false);
-      Alert.alert('분석 실패', result.error || '다시 시도해주세요');
+    // 로그인 확인
+    if (!token) {
+      Alert.alert('로그인 필요', '로그인 후 이용해주세요', [
+        { text: '확인', onPress: () => router.push('/login') }
+      ]);
+      return;
     }
     
-  } catch (error) {
-    setShowLoadingModal(false);
-    Alert.alert('오류', '분석 중 문제가 발생했습니다');
-    console.error('❌ 분석 오류:', error);
-  }
-};
+    setShowLoadingModal(true);
+    
+    try {
+      let imageUri = selectedImage.uri;
+      
+      // HEIC 파일이면 JPEG로 변환
+      if (imageUri.toLowerCase().endsWith('.heic') || imageUri.toLowerCase().endsWith('.heif')) {
+        console.log('🔄 HEIC → JPEG 변환 시작');
+        
+        const manipResult = await ImageManipulator.manipulateAsync(
+          imageUri,
+          [],
+          { 
+            compress: 0.8, 
+            format: ImageManipulator.SaveFormat.JPEG 
+          }
+        );
+        
+        imageUri = manipResult.uri;
+        console.log('✅ JPEG 변환 완료:', imageUri);
+      }
+      
+      console.log('🔍 탐지 시작:', imageUri);
+      
+      const result = await analyzeImage(imageUri, token);
+      
+      if (result.success) {
+        // ✅ faceResults 배열에서 딥페이크 여부 확인
+        const hasDeepfake = result.faceResults?.some(face => face.is_deepfake) || false;
+        const isSafe = !hasDeepfake;
+        
+        setDetectionResult(isSafe);
+        setFaceResults(result.faceResults || []); // ✅ 얼굴 결과 저장
+        
+        setShowLoadingModal(false);
+        setShowResultModal(true);
+        
+        console.log('✅ 분석 완료:', {
+          isSafe,
+          faceCount: result.faceCount,
+          faces: result.faceResults
+        });
+      } else {
+        setShowLoadingModal(false);
+        Alert.alert('분석 실패', result.error || '다시 시도해주세요');
+      }
+      
+    } catch (error) {
+      setShowLoadingModal(false);
+      Alert.alert('오류', '분석 중 문제가 발생했습니다');
+      console.error('❌ 분석 오류:', error);
+    }
+  };
 
   const handleCancelDetection = () => {
     setShowLoadingModal(false);
@@ -106,6 +110,7 @@ export default function DeepfakeDetection() {
       params: {
         imageUri: selectedImage?.uri || '',
         isSafe: detectionResult.toString(),
+        faceResults: JSON.stringify(faceResults), // ✅ 얼굴 결과 전달
       },
     });
   };

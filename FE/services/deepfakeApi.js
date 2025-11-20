@@ -4,7 +4,7 @@
 import { API_ENDPOINTS } from '../config/api';
 
 /**
- * 이미지 딥페이크 분석 (단일 사람)
+ * 이미지 딥페이크 분석
  * @param {string} imageUri - 이미지 파일 URI
  * @param {string} token - 인증 토큰
  * @returns {Promise<Object>} 분석 결과
@@ -53,13 +53,13 @@ export const analyzeImage = async (imageUri, token) => {
 
     console.log('✅ 이미지 분석 완료:', data);
 
+    // ✅ 새로운 응답 구조에 맞춰 처리
     return {
       success: true,
       recordId: data.record_id,
-      isDeepfake: data.is_deepfake,
-      confidenceScore: data.confidence_score,
-      analysisResult: data.analysis_result,
-      heatmapUrl: data.heatmap_url,
+      faceCount: data.face_count,
+      faceResults: data.face_quality_scores, // ✅ ResultUrl 포함된 배열
+      processingTime: data.processing_time,
     };
 
   } catch (error) {
@@ -105,13 +105,13 @@ export const analyzeVideo = async (videoUri, token) => {
 
     console.log('✅ 영상 분석 완료:', data);
 
+    // ✅ 새로운 응답 구조에 맞춰 처리
     return {
       success: true,
       recordId: data.record_id,
-      isDeepfake: data.is_deepfake,
-      confidenceScore: data.confidence_score,
-      analysisResult: data.analysis_result,
-      detectionDetails: data.detection_details || [],
+      faceCount: data.face_count,
+      faceResults: data.face_quality_scores, // ✅ ResultUrl 포함된 배열
+      processingTime: data.processing_time,
     };
 
   } catch (error) {

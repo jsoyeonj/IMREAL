@@ -27,6 +27,10 @@ export default function DetectionResult() {
   // 파라미터로 받은 데이터
   const imageUri = params.imageUri as string;
   const isSafe = params.isSafe === 'true';
+  const faceResultsStr = params.faceResults as string;
+  
+  // ✅ 얼굴 결과 파싱
+  const [faceResults, setFaceResults] = useState([]);
   
   // 랜덤 그래프 데이터 생성
   const [graphData, setGraphData] = useState({ fake: 0, real: 0 });
@@ -35,6 +39,17 @@ export default function DetectionResult() {
   const [showReportModal, setShowReportModal] = useState(false);
   
   useEffect(() => {
+    // ✅ faceResults 파싱
+    if (faceResultsStr) {
+      try {
+        const parsed = JSON.parse(faceResultsStr);
+        setFaceResults(parsed);
+        console.log('✅ 얼굴 결과:', parsed);
+      } catch (e) {
+        console.error('❌ 얼굴 결과 파싱 오류:', e);
+      }
+    }
+    
     // 랜덤 확률 생성 (0-100)
     const fakeScore = isSafe 
       ? Math.floor(Math.random() * 30) + 5   // 안전: 5-35%
@@ -43,7 +58,7 @@ export default function DetectionResult() {
     const realScore = 100 - fakeScore;
     
     setGraphData({ fake: fakeScore, real: realScore });
-  }, [isSafe]);
+  }, [isSafe, faceResultsStr]);
 
   // 이미지 다운로드 함수
   const handleDownloadImage = async () => {
@@ -103,83 +118,86 @@ export default function DetectionResult() {
               ? '진짜 이미지로\n판단됩니다!' 
               : '주의가 필요한 이미지로\n판단됩니다!'}
           </Text>
+          <Text style={styles.messageDesc}>
+            {isSafe 
+              ? 'AI가 분석한 결과, 이 이미지는 실제 사진일 가능성이 높습니다.'
+              : 'AI가 분석한 결과, 이 이미지에는 의심스러운 부분이 발견되었습니다.'}
+          </Text>
         </View>
 
-        {/* 그래프 섹션 (축 제거, 중앙 정렬) */}
-        <View style={styles.graphContainer}>
-          <View style={styles.bars}>
-            {/* Fake 바 */}
-            <View style={styles.barContainer}>
-              <View style={styles.barBackground}>
-                <View 
-                  style={[
-                    styles.barFill, 
-                    styles.barFake,
-                    { height: `${graphData.fake}%` }
-                  ]} 
-                />
+        {/* ✅ 각 얼굴별 ResultUrl 표시 */}
+        {faceResults && faceResults.length > 0 && (
+          <View style={styles.faceResultsContainer}>
+            <Text style={styles.sectionTitle}>감지된 얼굴 ({faceResults.length}명)</Text>
+            
+            {faceResults.map((face, index) => (
+              <View key={index} style={styles.faceCard}>
+                <View style={styles.faceInfo}>
+                  <Text style={styles.faceId}>얼굴 #{face.face_id}</Text>
+                  <Text style={[
+                    styles.faceStatus,
+                    { color: face.is_deepfake ? '#FF6B6B' : '#4ECDC4' }
+                  ]}>
+                    {face.is_deepfake ? '딥페이크' : '진짜'}
+                  </Text>
+                  <Text style={styles.faceConfidence}>
+                    신뢰도: {(face.rate * 100).toFixed(1)}%
+                  </Text>
+                </View>
+                
+                {/* ✅ ResultUrl이 있으면 이미지 표시 */}
+                {face.ResultUrl && (
+                  <View style={styles.faceImageContainer}>
+                    <Image 
+                      source={{ uri: face.ResultUrl }} 
+                      style={styles.faceImage}
+                      resizeMode="cover"
+                    />
+                    <Text style={styles.faceImageLabel}>감지된 얼굴</Text>
+                  </View>
+                )}
               </View>
-              <View style={styles.barLabelContainer}>
-                <Text style={styles.barLabel}>fake</Text>
-                <Text style={styles.barPercentage}>{graphData.fake}%</Text>
-              </View>
-            </View>
+            ))}
+          </View>
+        )}
 
-            {/* Real 바 */}
-            <View style={styles.barContainer}>
-              <View style={styles.barBackground}>
-                <View 
-                  style={[
-                    styles.barFill, 
-                    styles.barReal,
-                    { height: `${graphData.real}%` }
-                  ]} 
-                />
-              </View>
-              <View style={styles.barLabelContainer}>
-                <Text style={styles.barLabel}>real</Text>
-                <Text style={styles.barPercentage}>{graphData.real}%</Text>
-              </View>
+        {/* 그래프 섹션 */}
+        <View style={styles.graphContainer}>
+          <Text style={styles.sectionTitle}>확률 분포</Text>
+          <View style={styles.barWrap}>
+            <View style={[styles.bar, styles.fakeBar, { width: `${graphData.fake}%` }]}>
+              <Text style={styles.barLabel}>가짜 {graphData.fake}%</Text>
+            </View>
+            <View style={[styles.bar, styles.realBar, { width: `${graphData.real}%` }]}>
+              <Text style={styles.barLabel}>진짜 {graphData.real}%</Text>
             </View>
           </View>
         </View>
 
-        {/* 하단 버튼 영역 */}
-        <View style={styles.buttonContainer}>
-          {/* fake 비율이 높을 때만 신고하기 버튼 표시 */}
-          {graphData.fake > graphData.real && (
-            <ReportButton 
-              onPress={() => setShowReportModal(true)}
-            />
-          )}
-          
-          <TouchableOpacity 
-            style={styles.homeButton}
-            onPress={() => router.push('/home')}
-          >
-            <Text style={styles.homeButtonText}>홈으로 돌아가기</Text>
+        {/* 액션 버튼들 */}
+        <View style={styles.actions}>
+          <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadImage}>
+            <Ionicons name="download-outline" size={20} color="#fff" />
+            <Text style={styles.downloadBtnText}>이미지 저장</Text>
           </TouchableOpacity>
+
+          {!isSafe && (
+            <ReportButton onPress={() => setShowReportModal(true)} />
+          )}
         </View>
       </ScrollView>
 
       {/* 신고 모달 */}
       <ReportModal
         visible={showReportModal}
-        onClose={() => {
-          setShowReportModal(false);
-          router.push('/home');
-        }}
-        onDownloadImage={handleDownloadImage}
+        onClose={() => setShowReportModal(false)}
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -189,37 +207,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#000',
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  
-  // 이미지 섹션
+  backButton: { padding: 4 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#000' },
+  content: { paddingHorizontal: 20, paddingVertical: 24 },
   imageContainer: {
     width: '100%',
-    height: 280,
+    height: 300,
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 24,
+    marginBottom: 20,
+    backgroundColor: '#f5f5f5',
   },
-  uploadedImage: {
-    width: '100%',
-    height: '100%',
-  },
-  
-  // 메시지 섹션
-  messageContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
+  uploadedImage: { width: '100%', height: '100%' },
+  messageContainer: { marginBottom: 24 },
   messageTitle: {
     fontSize: 24,
     fontWeight: '800',
@@ -227,73 +227,82 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 32,
   },
-  
-  // 그래프 섹션 (축 제거, 중앙 정렬)
-  graphContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-    paddingVertical: 20,
+  messageDesc: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
   },
-  bars: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    gap: 60,
-    height: 280,
+  // ✅ 얼굴 결과 스타일
+  faceResultsContainer: {
+    marginBottom: 24,
   },
-  barContainer: {
-    width: 100,
-    alignItems: 'center',
-  },
-  barBackground: {
-    width: '100%',
-    height: 240,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-  },
-  barFill: {
-    width: '100%',
-    borderRadius: 12,
-  },
-  barFake: {
-    backgroundColor: '#FF6B6B',
-  },
-  barReal: {
-    backgroundColor: '#4C9AFF',
-  },
-  barLabelContainer: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  barLabel: {
+  sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#111',
-    marginBottom: 6,
+    marginBottom: 12,
   },
-  barPercentage: {
+  faceCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  faceInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  faceId: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#111',
+  },
+  faceStatus: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  faceConfidence: {
+    fontSize: 14,
     color: '#666',
   },
-  
-  // 버튼 영역
-  buttonContainer: {
-    width: '100%',
-    gap: 12,
-  },
-  homeButton: {
-    width: '100%',
-    paddingVertical: 16,
-    backgroundColor: '#0071E3',
-    borderRadius: 12,
+  faceImageContainer: {
     alignItems: 'center',
   },
-  homeButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
+  faceImage: {
+    width: width - 88,
+    height: 200,
+    borderRadius: 8,
+    backgroundColor: '#E5E7EB',
   },
+  faceImageLabel: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 8,
+  },
+  graphContainer: { marginBottom: 24 },
+  barWrap: { flexDirection: 'column', gap: 8 },
+  bar: {
+    height: 40,
+    borderRadius: 8,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  fakeBar: { backgroundColor: '#FF6B6B' },
+  realBar: { backgroundColor: '#4ECDC4' },
+  barLabel: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  actions: { gap: 12 },
+  downloadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4ECDC4',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  downloadBtnText: { fontSize: 16, fontWeight: '600', color: '#fff' },
 });

@@ -36,31 +36,48 @@ export const analyzeImage = async (imageUri, token) => {
 
     console.log('🔍 이미지 분석 요청:', imageUri);
 
-    // API 호출
-    const response = await fetch(API_ENDPOINTS.DETECT_IMAGE, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Token ${token}`,
-      },
-      body: formData,
-    });
+    // ✅ 타임아웃 설정 (60초)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 600000);
 
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.error || '분석 중 오류가 발생했습니다');
+    try {
+      // API 호출
+      const response = await fetch(API_ENDPOINTS.DETECT_IMAGE, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || '분석 중 오류가 발생했습니다');
+      }
+
+      console.log('✅ 이미지 분석 완료:', data);
+
+      // ✅ 새로운 응답 구조에 맞춰 처리
+      return {
+        success: true,
+        recordId: data.record_id,
+        faceCount: data.face_count,
+        faceResults: data.face_quality_scores, // ResultUrl 포함된 배열
+        processingTime: data.processing_time,
+      };
+
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        throw new Error('요청 시간이 초과되었습니다. 다시 시도해주세요.');
+      }
+      throw fetchError;
     }
-
-    console.log('✅ 이미지 분석 완료:', data);
-
-    // ✅ 새로운 응답 구조에 맞춰 처리
-    return {
-      success: true,
-      recordId: data.record_id,
-      faceCount: data.face_count,
-      faceResults: data.face_quality_scores, // ✅ ResultUrl 포함된 배열
-      processingTime: data.processing_time,
-    };
 
   } catch (error) {
     console.error('❌ 이미지 분석 오류:', error);
@@ -89,30 +106,47 @@ export const analyzeVideo = async (videoUri, token) => {
 
     console.log('🎥 영상 분석 요청:', videoUri);
 
-    const response = await fetch(API_ENDPOINTS.DETECT_VIDEO, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Token ${token}`,
-      },
-      body: formData,
-    });
+    // ✅ 타임아웃 설정 (60초)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 600000);
 
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.error || '분석 중 오류가 발생했습니다');
+    try {
+      const response = await fetch(API_ENDPOINTS.DETECT_VIDEO, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || '분석 중 오류가 발생했습니다');
+      }
+
+      console.log('✅ 영상 분석 완료:', data);
+
+      // ✅ 새로운 응답 구조에 맞춰 처리
+      return {
+        success: true,
+        recordId: data.record_id,
+        faceCount: data.face_count,
+        faceResults: data.face_quality_scores, // ResultUrl 포함된 배열
+        processingTime: data.processing_time,
+      };
+
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        throw new Error('요청 시간이 초과되었습니다. 다시 시도해주세요.');
+      }
+      throw fetchError;
     }
-
-    console.log('✅ 영상 분석 완료:', data);
-
-    // ✅ 새로운 응답 구조에 맞춰 처리
-    return {
-      success: true,
-      recordId: data.record_id,
-      faceCount: data.face_count,
-      faceResults: data.face_quality_scores, // ✅ ResultUrl 포함된 배열
-      processingTime: data.processing_time,
-    };
 
   } catch (error) {
     console.error('❌ 영상 분석 오류:', error);

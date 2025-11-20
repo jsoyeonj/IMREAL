@@ -8,9 +8,15 @@ import { API_ENDPOINTS } from '../config/api';
  * @param {string} imageUri - 이미지 파일 URI
  * @param {string} token - 인증 토큰
  * @param {string} jobType - 작업 유형 ('watermark', 'adversarial_noise', 'both')
+ * @param {string} watermarkText - 워터마크로 사용할 텍스트
  * @returns {Promise<Object>} 워터마크 추가 결과
  */
-export const addWatermark = async (imageUri, token, jobType = 'watermark') => {
+export const addWatermark = async (
+  imageUri, 
+  token, 
+  jobType = 'watermark',
+  watermarkText = 'IMREAL'
+) => {
   try {
     const formData = new FormData();
     
@@ -38,9 +44,13 @@ export const addWatermark = async (imageUri, token, jobType = 'watermark') => {
     // ✅ job_type 추가
     formData.append('job_type', jobType);
 
+    // ✅ watermark_text 추가
+    formData.append('watermark_text', watermarkText);
+
     console.log('🔒 워터마크 추가 요청:', {
       uri: imageUri,
       jobType,
+      watermarkText,
       endpoint: API_ENDPOINTS.PROTECT_IMAGE
     });
 
@@ -49,7 +59,7 @@ export const addWatermark = async (imageUri, token, jobType = 'watermark') => {
     const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     try {
-      // ✅ API 호출 (예제 코드와 동일)
+      // ✅ API 호출
       const response = await fetch(API_ENDPOINTS.PROTECT_IMAGE, {
         method: 'POST',
         headers: {

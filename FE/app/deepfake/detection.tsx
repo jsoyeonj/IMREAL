@@ -138,15 +138,16 @@ export default function DeepfakeDetection() {
   };
 
   const handleViewDetail = () => {
-    router.push({
-      pathname: '/deepfake/result',
-      params: {
-        imageUri: selectedImage?.uri || '',
-        isSafe: detectionResult.toString(),
-        faceResults: JSON.stringify(faceResults),
-      },
-    });
-  };
+  router.push({
+    pathname: '/deepfake/result',
+    params: {
+      imageUri: selectedImage?.uri || '',
+      isSafe: detectionResult.toString(),
+      faceResults: JSON.stringify(faceResults),
+      mediaType: selectedImage?.mediaType || 'image',
+    },
+  });
+};
 
   return (
     <SafeAreaView style={styles.container}>

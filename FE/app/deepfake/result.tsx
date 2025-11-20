@@ -28,6 +28,7 @@ export default function DetectionResult() {
   const imageUri = params.imageUri as string;
   const isSafe = params.isSafe === 'true';
   const faceResultsStr = params.faceResults as string;
+  const mediaType = params.mediaType as string || 'image';
   
   // ✅ 얼굴 결과 파싱
   const [faceResults, setFaceResults] = useState([]);
@@ -51,34 +52,21 @@ export default function DetectionResult() {
         
         // ✅ 수정된 확률 계산 로직
         if (parsed && parsed.length > 0) {
-          // 딥페이크와 진짜를 분리
-          const deepfakeFaces = parsed.filter(face => face.is_deepfake);
-          const realFaces = parsed.filter(face => !face.is_deepfake);
-          
-          let fakePercentage = 0;
-          let realPercentage = 0;
-          
-          if (deepfakeFaces.length > 0) {
-            // 딥페이크가 하나라도 있으면: 딥페이크들의 평균 신뢰도
-            const avgDeepfakeRate = deepfakeFaces.reduce((sum, face) => sum + face.rate, 0) / deepfakeFaces.length;
-            fakePercentage = Math.round(avgDeepfakeRate * 100);
-            realPercentage = 100 - fakePercentage;
-          } else {
-            // 모두 진짜면: 진짜들의 평균 신뢰도
-            const avgRealRate = realFaces.reduce((sum, face) => sum + face.rate, 0) / realFaces.length;
-            realPercentage = Math.round(avgRealRate * 100);
-            fakePercentage = 100 - realPercentage;
-          }
-          
-          setGraphData({ fake: fakePercentage, real: realPercentage });
-          
-          console.log('📊 계산된 확률:', {
-            deepfakeFaces: deepfakeFaces.length,
-            realFaces: realFaces.length,
-            fake: fakePercentage,
-            real: realPercentage
-          });
-        }
+  // 모든 얼굴의 평균 딥페이크 확률 계산
+  const avgFakeRate = parsed.reduce((sum, face) => sum + face.rate, 0) / parsed.length;
+  
+  const fakePercentage = Math.round(avgFakeRate * 100);
+  const realPercentage = 100 - fakePercentage;
+  
+  setGraphData({ fake: fakePercentage, real: realPercentage });
+  
+  console.log('📊 계산된 확률:', {
+    totalFaces: parsed.length,
+    avgFakeRate: avgFakeRate,
+    fake: fakePercentage,
+    real: realPercentage
+  });
+}
       } catch (e) {
         console.error('❌ 얼굴 결과 파싱 오류:', e);
       }
@@ -86,33 +74,6 @@ export default function DetectionResult() {
       console.warn('⚠️ faceResultsStr가 없습니다');
     }
   }, [isSafe, faceResultsStr]);
-
-  // 이미지 다운로드 함수
-  const handleDownloadImage = async () => {
-    if (!imageUri) {
-      Alert.alert('오류', '다운로드할 이미지가 없습니다.');
-      return;
-    }
-
-    try {
-      const isAvailable = await Sharing.isAvailableAsync();
-      
-      if (!isAvailable) {
-        Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
-        return;
-      }
-
-      await Sharing.shareAsync(imageUri, {
-        mimeType: 'image/jpeg',
-        dialogTitle: '딥페이크 감지 이미지 저장하기',
-      });
-
-      console.log('이미지 공유 완료');
-    } catch (error) {
-      console.error('이미지 공유 실패:', error);
-      Alert.alert('공유 실패', '이미지 공유 중 오류가 발생했습니다.');
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -139,18 +100,18 @@ export default function DetectionResult() {
         </View>
 
         {/* 결과 멘트 */}
-        <View style={styles.messageContainer}>
-          <Text style={styles.messageTitle}>
-            {isSafe 
-              ? '진짜 이미지로\n판단됩니다!' 
-              : '주의가 필요한 이미지로\n판단됩니다!'}
-          </Text>
-          <Text style={styles.messageDesc}>
-            {isSafe 
-              ? 'AI가 분석한 결과, 이 이미지는 실제 사진일 가능성이 높습니다.'
-              : 'AI가 분석한 결과, 이 이미지에는 의심스러운 부분이 발견되었습니다.'}
-          </Text>
-        </View>
+<View style={styles.messageContainer}>
+  <Text style={styles.messageTitle}>
+    {isSafe 
+      ? `진짜 ${mediaType === 'video' ? '영상' : '이미지'}으로\n판단됩니다!`
+      : `주의가 필요한 ${mediaType === 'video' ? '영상' : '이미지'}으로\n판단됩니다!`}
+  </Text>
+  <Text style={styles.messageDesc}>
+    {isSafe 
+      ? `AI가 분석한 결과, 이 ${mediaType === 'video' ? '영상' : '이미지'}은 실제 ${mediaType === 'video' ? '영상' : '사진'}일 가능성이 높습니다.`
+      : `AI가 분석한 결과, 이 ${mediaType === 'video' ? '영상' : '이미지'}에는 의심스러운 부분이 발견되었습니다.`}
+  </Text>
+</View>
 
         {/* ✅ 각 얼굴별 결과 표시 */}
         {faceResults && faceResults.length > 0 ? (
@@ -216,16 +177,11 @@ export default function DetectionResult() {
         </View>
 
         {/* 액션 버튼들 */}
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadImage}>
-            <Ionicons name="download-outline" size={20} color="#fff" />
-            <Text style={styles.downloadBtnText}>이미지 저장</Text>
-          </TouchableOpacity>
-
-          {!isSafe && (
-            <ReportButton onPress={() => setShowReportModal(true)} />
-          )}
-        </View>
+{!isSafe && (
+  <View style={styles.actions}>
+    <ReportButton onPress={() => setShowReportModal(true)} />
+  </View>
+)}
       </ScrollView>
 
       {/* 신고 모달 */}
@@ -376,6 +332,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 8,
     borderRadius: 8,
+    minWidth: 80
   },
   fakeBar: {
     backgroundColor: '#FF6B6B',

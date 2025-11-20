@@ -22,6 +22,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { addWatermark } from '../../services/watermarkApi';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export default function AddWatermark() {
   const router = useRouter();
@@ -111,47 +112,51 @@ export default function AddWatermark() {
   };
 
   const handleDownload = async () => {
-    const imageToShare = watermarkedImageUrl || selectedImage?.uri;
+  const imageToShare = watermarkedImageUrl || selectedImage?.uri;
+  
+  if (!imageToShare) return;
+  
+  try {
+    let localUri = imageToShare;
     
-    if (!imageToShare) return;
-    
-    try {
-      if (Platform.OS === 'ios') {
-        const isAvailable = await Sharing.isAvailableAsync();
-        
-        if (!isAvailable) {
-          Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
-          return;
-        }
-
-        await Sharing.shareAsync(imageToShare, {
-          mimeType: 'image/jpeg',
-          dialogTitle: '워터마크가 추가된 이미지 저장하기',
-        });
-
-        console.log('✅ iOS 공유 완료');
-      } else {
-        const isAvailable = await Sharing.isAvailableAsync();
-        
-        if (isAvailable) {
-          await Sharing.shareAsync(imageToShare, {
-            mimeType: 'image/jpeg',
-            dialogTitle: '워터마크가 추가된 이미지 저장하기',
-          });
-          console.log('✅ Android 공유 완료');
-        } else {
-          Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
-        }
-      }
+    // ✅ S3 URL인 경우 먼저 로컬에 다운로드
+    if (imageToShare.startsWith('http')) {
+      console.log('🌐 원격 이미지 다운로드 중:', imageToShare);
       
-      setShowCompleteModal(false);
-      router.push('/home');
+      const filename = `watermarked_${Date.now()}.jpg`;
+      const downloadPath = `${FileSystem.cacheDirectory}${filename}`;
       
-    } catch (error) {
-      console.error('❌ 공유 실패:', error);
-      Alert.alert('공유 실패', '이미지 공유 중 오류가 발생했습니다.');
+      const { uri } = await FileSystem.downloadAsync(
+        imageToShare,
+        downloadPath
+      );
+      
+      localUri = uri;
+      console.log('✅ 로컬 다운로드 완료:', localUri);
     }
-  };
+    
+    // 공유
+    const isAvailable = await Sharing.isAvailableAsync();
+    
+    if (!isAvailable) {
+      Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
+      return;
+    }
+
+    await Sharing.shareAsync(localUri, {
+      mimeType: 'image/jpeg',
+      dialogTitle: '워터마크가 추가된 이미지 저장하기',
+    });
+
+    console.log('✅ 공유 완료');
+    setShowCompleteModal(false);
+    router.push('/home');
+    
+  } catch (error) {
+    console.error('❌ 공유 실패:', error);
+    Alert.alert('공유 실패', '이미지 공유 중 오류가 발생했습니다.');
+  }
+};
 
   return (
   <SafeAreaView style={styles.container}>

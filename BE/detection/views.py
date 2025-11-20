@@ -42,7 +42,7 @@ class ImageAnalysisView(APIView):
                 file_type='image',
                 purpose='detection',
                 is_temporary=True,  # 분석 후 삭제
-                use_s3=False
+                use_s3=True
             )
             
             # ✅ S3 URL 생성
@@ -134,7 +134,7 @@ class VideoAnalysisView(APIView):
                 file_type='video',
                 purpose='detection',
                 is_temporary=True,  # 분석 후 삭제
-                use_s3=False
+                use_s3=True
             )
             
             # ✅ S3 URL 생성

@@ -49,7 +49,7 @@ class AIModelService:
             }
             
             response = requests.post(
-                f"{self.fastapi_url}/api/analyze/image",
+                f"{self.fastapi_url}/detect_deepfake",
                 json=payload,  # ← JSON으로 전송!
                 timeout=self.timeout
             )
@@ -104,7 +104,7 @@ class AIModelService:
             }
             
             response = requests.post(
-                f"{self.fastapi_url}/api/analyze/video",
+                f"{self.fastapi_url}/detect_deepfake",
                 json=payload,
                 timeout=self.timeout
             )

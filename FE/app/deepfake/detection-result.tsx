@@ -1,6 +1,6 @@
 // FE/app/deepfake/detection-result.tsx
 // 탐지 결과 상세 화면 (탐지 기록에서 특정 기록을 눌렀을 때 표시)
-
+import { ReportModal } from '../../components/report/ReportModal';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -45,7 +45,8 @@ interface AnalysisRecord {
 export default function DetectionResultScreen() {
   const router = useRouter();
   const { recordId } = useLocalSearchParams();
-  
+  const [showReportModal, setShowReportModal] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [record, setRecord] = useState<AnalysisRecord | null>(null);
 
@@ -109,20 +110,8 @@ export default function DetectionResultScreen() {
   };
 
   const handleReport = () => {
-    Alert.alert(
-      '신고하기',
-      '이 콘텐츠를 신고하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        { 
-          text: '신고', 
-          onPress: () => {
-            Alert.alert('알림', '신고가 접수되었습니다.');
-          }
-        }
-      ]
-    );
-  };
+  setShowReportModal(true);
+};
 
   if (loading) {
     return (
@@ -299,6 +288,11 @@ export default function DetectionResultScreen() {
             <Text style={styles.reportButtonText}>신고하기</Text>
           </TouchableOpacity>
         )}
+        <ReportModal
+  visible={showReportModal}
+  onClose={() => setShowReportModal(false)}
+  onDownloadImage={() => {}}
+/>
       </ScrollView>
     </SafeAreaView>
   );

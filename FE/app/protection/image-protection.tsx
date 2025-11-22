@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useImagePicker } from '../../hooks/useImagePicker';
@@ -140,8 +140,19 @@ export default function ImageProtection() {
         {/* 선택 후에만 노출되는 액션 */}
         {selectedImage && (
           <View style={styles.actionRow}>
-            <Text style={styles.linkBtn} onPress={clearImage}>다시 선택</Text>
-            <Text style={styles.primaryBtn} onPress={handleProtection}>보호 시작</Text>
+            <TouchableOpacity 
+              style={styles.reselectButton}
+              onPress={clearImage}
+            >
+              <Text style={styles.reselectButtonText}>다시 선택</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.protectButton}
+              onPress={handleProtection}
+            >
+              <Text style={styles.protectButtonText}>보호 시작</Text>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -155,6 +166,10 @@ export default function ImageProtection() {
       {/* 완료 모달 */}
       <ProtectionCompleteModal
         visible={showCompleteModal}
+        onClose={() => {
+        setShowCompleteModal(false);
+        router.push('/home');
+      }}
         onDownload={handleDownload}
       />
     </SafeAreaView>
@@ -172,13 +187,33 @@ const styles = StyleSheet.create({
   mainTitle: { fontSize: 28, fontWeight: '800', color: '#111', textAlign: 'center', lineHeight: 36 },
   description: { fontSize: 14, color: '#666', textAlign: 'center', marginTop: 10, lineHeight: 20 },
 
-  actionRow: { flexDirection: 'row', gap: 12, marginTop: 20 },
-  linkBtn: {
-    flex: 1, textAlign: 'center', paddingVertical: 14,
-    borderRadius: 14, backgroundColor: '#F3F4F6', color: '#444', fontWeight: '600'
+  actionRow: {
+  flexDirection: 'row',
+  gap: 12,
+  marginTop: 20,
   },
-  primaryBtn: {
-    flex: 1.2, textAlign: 'center', paddingVertical: 14,
-    borderRadius: 14, backgroundColor: '#4ECDC4', color: '#fff', fontWeight: '700'
+  reselectButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  reselectButtonText: {
+    color: '#444',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  protectButton: {
+    flex: 1.2,
+    backgroundColor: '#4ECDC4',  // 청록색 유지
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  protectButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

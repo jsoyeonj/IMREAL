@@ -213,8 +213,19 @@ export default function DeepfakeDetection() {
 
         {selectedImage && (
           <View style={styles.actionRow}>
-            <Text style={styles.linkBtn} onPress={clearImage}>다시 선택</Text>
-            <Text style={styles.primaryBtn} onPress={handleDetection}>탐지 시작</Text>
+            <TouchableOpacity 
+              style={styles.reselectButton}
+              onPress={clearImage}
+            >
+              <Text style={styles.reselectButtonText}>다시 선택</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.detectButton}
+              onPress={handleDetection}
+            >
+              <Text style={styles.detectButtonText}>탐지 시작</Text>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -312,22 +323,33 @@ const styles = StyleSheet.create({
     gap: 12, 
     marginTop: 20 
   },
-  linkBtn: {
-    flex: 1, 
-    textAlign: 'center', 
-    paddingVertical: 14,
-    borderRadius: 14, 
-    backgroundColor: '#F3F4F6', 
-    color: '#444', 
-    fontWeight: '600'
+    actionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
   },
-  primaryBtn: {
-    flex: 1.2, 
-    textAlign: 'center', 
-    paddingVertical: 14,
-    borderRadius: 14, 
-    backgroundColor: '#4ECDC4', 
-    color: '#fff', 
-    fontWeight: '700'
+  reselectButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  reselectButtonText: {
+    color: '#444',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  detectButton: {
+    flex: 1.2,
+    backgroundColor: '#4ECDC4',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  detectButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

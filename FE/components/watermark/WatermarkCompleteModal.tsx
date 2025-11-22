@@ -6,14 +6,17 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface WatermarkCompleteModalProps {
   visible: boolean;
+  onClose: () => void;
   onDownload: () => void;
 }
 
 export function WatermarkCompleteModal({
   visible,
+  onClose,
   onDownload,
 }: WatermarkCompleteModalProps) {
   return (
@@ -39,9 +42,14 @@ export function WatermarkCompleteModal({
             자유롭게 사용해보세요!
           </Text>
 
-          {/* 다운로드 버튼 */}
+          {/* 공유하기 버튼 */}
           <TouchableOpacity style={styles.downloadButton} onPress={onDownload}>
             <Text style={styles.downloadButtonText}>공유하기</Text>
+          </TouchableOpacity>
+          {/* 홈으로 돌아가기 버튼 */}
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Ionicons name="arrow-back" size={20} color="#FFF" />
+            <Text style={styles.closeButtonText}>홈으로 돌아가기</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -111,8 +119,25 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: '#0071E3',
     borderRadius: 12,
+    marginBottom: 12,
   },
   downloadButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  closeButton: {
+    width: '100%',
+    flexDirection: 'row',       // ✅ 추가
+    alignItems: 'center',       // ✅ 추가
+    justifyContent: 'center',   // ✅ 추가
+    paddingVertical: 14,
+    backgroundColor: '#111',
+    borderRadius: 12,
+    gap: 8,                     // ✅ 추가: 아이콘과 텍스트 사이 간격
+  },
+  closeButtonText: {  // ✅ 추가
     fontSize: 15,
     fontWeight: '700',
     color: '#fff',

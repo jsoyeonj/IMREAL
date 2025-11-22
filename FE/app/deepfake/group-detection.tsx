@@ -2,7 +2,7 @@
 // @ts-nocheck
 import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, Image, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ToggleMode } from '../../components/deepfake/ToggleMode';
 import { useImagePicker } from '../../hooks/useImagePicker';
@@ -131,8 +131,19 @@ export default function GroupDeepfakeDetection() {
         {/* 선택 후에만 노출되는 액션 */}
         {selectedImage && (
           <View style={styles.actionRow}>
-            <Text style={styles.linkBtn} onPress={clearImage}>다시 선택</Text>
-            <Text style={styles.primaryBtn} onPress={handleDetection}>탐지 시작</Text>
+            <TouchableOpacity 
+              style={styles.reselectButton}
+              onPress={clearImage}
+            >
+              <Text style={styles.reselectButtonText}>다시 선택</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.detectButton}
+              onPress={handleDetection}
+            >
+              <Text style={styles.detectButtonText}>탐지 시작</Text>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -207,22 +218,28 @@ const styles = StyleSheet.create({
     gap: 12, 
     marginTop: 20 
   },
-  linkBtn: {
-    flex: 1, 
-    textAlign: 'center', 
-    paddingVertical: 14,
-    borderRadius: 14, 
-    backgroundColor: '#F3F4F6', 
-    color: '#444', 
-    fontWeight: '600'
+  reselectButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
   },
-  primaryBtn: {
-    flex: 1.2, 
-    textAlign: 'center', 
-    paddingVertical: 14,
-    borderRadius: 14, 
-    backgroundColor: '#6C63FF', 
-    color: '#fff', 
-    fontWeight: '700'
+  reselectButtonText: {
+    color: '#444',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  detectButton: {
+    flex: 1.2,
+    backgroundColor: '#6C63FF',  // 보라색 유지
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  detectButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

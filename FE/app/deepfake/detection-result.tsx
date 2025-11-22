@@ -342,7 +342,10 @@ export default function DetectionResultScreen() {
         {/* 신고 모달 - ✅ handleShareImage 함수 연결 */}
         <ReportModal
           visible={showReportModal}
-          onClose={() => setShowReportModal(false)}
+          onClose={() => {
+            setShowReportModal(false);
+            router.push('/home');  // ✅ 홈으로 이동 추가
+          }}
           onDownloadImage={handleShareImage}
         />
       </ScrollView>

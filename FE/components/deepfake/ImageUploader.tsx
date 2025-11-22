@@ -51,29 +51,31 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       )}
 
 
-      {/* 업로드 버튼 */}
-      <TouchableOpacity
-        style={[styles.uploadButton, { backgroundColor: 'transparent' }]} // 바탕 투명, 아이콘만 강조
-        onPress={onPickImage}
-        disabled={isLoading}
-        activeOpacity={0.8}
-      >
-        <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
-          <Image
-            source={
-              iconSource ??
-              require('../../assets/images/icons/upload-camera-teal.png') // 기본(단일) 아이콘
-            }
-            style={styles.iconImage}
-            resizeMode="contain"
-          />
-        </View>
-        {isLoading ? (
-          <ActivityIndicator />
-        ) : (
-          <Text style={[styles.uploadLabel, { color: '#111' }]}>{label}</Text>
-        )}
-      </TouchableOpacity>
+      {/* 업로드 버튼 - 이미지가 선택되지 않았을 때만 표시 */}
+      {!selectedImage && (
+        <TouchableOpacity
+          style={[styles.uploadButton, { backgroundColor: 'transparent' }]} // 바탕 투명, 아이콘만 강조
+          onPress={onPickImage}
+          disabled={isLoading}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
+            <Image
+              source={
+                iconSource ??
+                require('../../assets/images/icons/upload-camera-teal.png') // 기본(단일) 아이콘
+              }
+              style={styles.iconImage}
+              resizeMode="contain"
+            />
+          </View>
+          {isLoading ? (
+            <ActivityIndicator />
+          ) : (
+            <Text style={[styles.uploadLabel, { color: '#111' }]}>{label}</Text>
+          )}
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

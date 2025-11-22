@@ -56,7 +56,7 @@ export const addWatermark = async (
 
     // ✅ 타임아웃 설정 (60초)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const timeoutId = setTimeout(() => controller.abort(), 600000);
 
     try {
       // ✅ API 호출

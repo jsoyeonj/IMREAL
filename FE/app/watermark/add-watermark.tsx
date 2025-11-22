@@ -220,13 +220,23 @@ export default function AddWatermark() {
         />
 
         {/* 워터마크 추가 버튼 */}
+        {/* 액션 버튼들 */}
         {selectedImage && (
-          <TouchableOpacity 
-            style={styles.watermarkButton}
-            onPress={handleAddWatermark}
-          >
-            <Text style={styles.watermarkButtonText}>워터마크 추가하기</Text>
-          </TouchableOpacity>
+          <View style={styles.actionRow}>
+            <TouchableOpacity 
+              style={styles.reselectButton}
+              onPress={clearImage}
+            >
+              <Text style={styles.reselectButtonText}>다시 선택</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.watermarkButton}
+              onPress={handleAddWatermark}
+            >
+              <Text style={styles.watermarkButtonText}>워터마크 추가하기</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -326,12 +336,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
   },
+  // 기존 styles 객체 안에 추가
+  actionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  reselectButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  reselectButtonText: {
+    color: '#444',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   watermarkButton: {
+    flex: 1.2,  // 워터마크 버튼을 약간 더 넓게
     backgroundColor: '#9333EA',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 20,
   },
   watermarkButtonText: {
     color: '#fff',

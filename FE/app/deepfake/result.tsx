@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ReportButton } from '../../components/report/ReportButton';
 import { ReportModal } from '../../components/report/ReportModal';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';  // ✅ 추가
 
 const { width } = Dimensions.get('window');
 
@@ -52,21 +53,21 @@ export default function DetectionResult() {
         
         // ✅ 수정된 확률 계산 로직
         if (parsed && parsed.length > 0) {
-  // 모든 얼굴의 평균 딥페이크 확률 계산
-  const avgFakeRate = parsed.reduce((sum, face) => sum + face.rate, 0) / parsed.length;
-  
-  const fakePercentage = Math.round(avgFakeRate * 100);
-  const realPercentage = 100 - fakePercentage;
-  
-  setGraphData({ fake: fakePercentage, real: realPercentage });
-  
-  console.log('📊 계산된 확률:', {
-    totalFaces: parsed.length,
-    avgFakeRate: avgFakeRate,
-    fake: fakePercentage,
-    real: realPercentage
-  });
-}
+          // 모든 얼굴의 평균 딥페이크 확률 계산
+          const avgFakeRate = parsed.reduce((sum, face) => sum + face.rate, 0) / parsed.length;
+          
+          const fakePercentage = Math.round(avgFakeRate * 100);
+          const realPercentage = 100 - fakePercentage;
+          
+          setGraphData({ fake: fakePercentage, real: realPercentage });
+          
+          console.log('📊 계산된 확률:', {
+            totalFaces: parsed.length,
+            avgFakeRate: avgFakeRate,
+            fake: fakePercentage,
+            real: realPercentage
+          });
+        }
       } catch (e) {
         console.error('❌ 얼굴 결과 파싱 오류:', e);
       }
@@ -74,6 +75,54 @@ export default function DetectionResult() {
       console.warn('⚠️ faceResultsStr가 없습니다');
     }
   }, [isSafe, faceResultsStr]);
+
+  // ✅ 이미지 공유 함수 추가
+  const handleShareImage = async () => {
+    if (!imageUri) {
+      Alert.alert('오류', '공유할 이미지가 없습니다.');
+      return;
+    }
+    
+    try {
+      let localUri = imageUri;
+      
+      // S3 URL인 경우 먼저 로컬에 다운로드
+      if (imageUri.startsWith('http')) {
+        console.log('🌐 원격 이미지 다운로드 중:', imageUri);
+        
+        const filename = `detection_result_${Date.now()}.jpg`;
+        const downloadPath = `${FileSystem.cacheDirectory}${filename}`;
+        
+        const { uri } = await FileSystem.downloadAsync(
+          imageUri,
+          downloadPath
+        );
+        
+        localUri = uri;
+        console.log('✅ 로컬 다운로드 완료:', localUri);
+      }
+      
+      // 공유 가능 여부 확인
+      const isAvailable = await Sharing.isAvailableAsync();
+      
+      if (!isAvailable) {
+        Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
+        return;
+      }
+
+      // 이미지 공유
+      await Sharing.shareAsync(localUri, {
+        mimeType: 'image/jpeg',
+        dialogTitle: '딥페이크 감지 결과 이미지 공유하기',
+      });
+
+      console.log('✅ 이미지 공유 완료');
+      
+    } catch (error) {
+      console.error('❌ 이미지 공유 실패:', error);
+      Alert.alert('공유 실패', '이미지 공유 중 오류가 발생했습니다.');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -100,18 +149,18 @@ export default function DetectionResult() {
         </View>
 
         {/* 결과 멘트 */}
-<View style={styles.messageContainer}>
-  <Text style={styles.messageTitle}>
-    {isSafe 
-      ? `진짜 ${mediaType === 'video' ? '영상' : '이미지'}으로\n판단됩니다!`
-      : `주의가 필요한 ${mediaType === 'video' ? '영상' : '이미지'}으로\n판단됩니다!`}
-  </Text>
-  <Text style={styles.messageDesc}>
-    {isSafe 
-      ? `AI가 분석한 결과, 이 ${mediaType === 'video' ? '영상' : '이미지'}은 실제 ${mediaType === 'video' ? '영상' : '사진'}일 가능성이 높습니다.`
-      : `AI가 분석한 결과, 이 ${mediaType === 'video' ? '영상' : '이미지'}에는 의심스러운 부분이 발견되었습니다.`}
-  </Text>
-</View>
+        <View style={styles.messageContainer}>
+          <Text style={styles.messageTitle}>
+            {isSafe 
+              ? `진짜 ${mediaType === 'video' ? '영상' : '이미지'}으로\n판단됩니다!`
+              : `주의가 필요한 ${mediaType === 'video' ? '영상' : '이미지'}으로\n판단됩니다!`}
+          </Text>
+          <Text style={styles.messageDesc}>
+            {isSafe 
+              ? `AI가 분석한 결과, 이 ${mediaType === 'video' ? '영상' : '이미지'}은 실제 ${mediaType === 'video' ? '영상' : '사진'}일 가능성이 높습니다.`
+              : `AI가 분석한 결과, 이 ${mediaType === 'video' ? '영상' : '이미지'}에는 의심스러운 부분이 발견되었습니다.`}
+          </Text>
+        </View>
 
         {/* ✅ 각 얼굴별 결과 표시 */}
         {faceResults && faceResults.length > 0 ? (
@@ -177,17 +226,18 @@ export default function DetectionResult() {
         </View>
 
         {/* 액션 버튼들 */}
-{!isSafe && (
-  <View style={styles.actions}>
-    <ReportButton onPress={() => setShowReportModal(true)} />
-  </View>
-)}
+        {!isSafe && (
+          <View style={styles.actions}>
+            <ReportButton onPress={() => setShowReportModal(true)} />
+          </View>
+        )}
       </ScrollView>
 
-      {/* 신고 모달 */}
+      {/* 신고 모달 - ✅ handleShareImage 함수 연결 */}
       <ReportModal
         visible={showReportModal}
         onClose={() => setShowReportModal(false)}
+        onDownloadImage={handleShareImage}
       />
     </SafeAreaView>
   );

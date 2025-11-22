@@ -1,6 +1,5 @@
 // FE/app/deepfake/detection-result.tsx
 // 탐지 결과 상세 화면 (탐지 기록에서 특정 기록을 눌렀을 때 표시)
-import { ReportModal } from '../../components/report/ReportModal';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -17,6 +16,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { getAnalysisRecordDetail } from '../../services/deepfakeApi';
+import { ReportModal } from '../../components/report/ReportModal';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 
 // ✅ 타입 정의
 interface DetectionDetail {
@@ -110,8 +112,56 @@ export default function DetectionResultScreen() {
   };
 
   const handleReport = () => {
-  setShowReportModal(true);
-};
+    setShowReportModal(true);
+  };
+
+  // ✅ 이미지 공유 함수 추가
+  const handleShareImage = async () => {
+    if (!record?.image_url) {
+      Alert.alert('오류', '공유할 이미지가 없습니다.');
+      return;
+    }
+    
+    try {
+      let localUri = record.image_url;
+      
+      // S3 URL인 경우 먼저 로컬에 다운로드
+      if (record.image_url.startsWith('http')) {
+        console.log('🌐 원격 이미지 다운로드 중:', record.image_url);
+        
+        const filename = `detection_history_${record.record_id}_${Date.now()}.jpg`;
+        const downloadPath = `${FileSystem.cacheDirectory}${filename}`;
+        
+        const { uri } = await FileSystem.downloadAsync(
+          record.image_url,
+          downloadPath
+        );
+        
+        localUri = uri;
+        console.log('✅ 로컬 다운로드 완료:', localUri);
+      }
+      
+      // 공유 가능 여부 확인
+      const isAvailable = await Sharing.isAvailableAsync();
+      
+      if (!isAvailable) {
+        Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
+        return;
+      }
+
+      // 이미지 공유
+      await Sharing.shareAsync(localUri, {
+        mimeType: 'image/jpeg',
+        dialogTitle: '딥페이크 감지 기록 이미지 공유하기',
+      });
+
+      console.log('✅ 이미지 공유 완료');
+      
+    } catch (error) {
+      console.error('❌ 이미지 공유 실패:', error);
+      Alert.alert('공유 실패', '이미지 공유 중 오류가 발생했습니다.');
+    }
+  };
 
   if (loading) {
     return (
@@ -288,11 +338,13 @@ export default function DetectionResultScreen() {
             <Text style={styles.reportButtonText}>신고하기</Text>
           </TouchableOpacity>
         )}
+
+        {/* 신고 모달 - ✅ handleShareImage 함수 연결 */}
         <ReportModal
-  visible={showReportModal}
-  onClose={() => setShowReportModal(false)}
-  onDownloadImage={() => {}}
-/>
+          visible={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          onDownloadImage={handleShareImage}
+        />
       </ScrollView>
     </SafeAreaView>
   );

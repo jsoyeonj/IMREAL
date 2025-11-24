@@ -15,6 +15,7 @@ import { uploadProfileImage, getProfileImage } from '../services/profileApi';
 import * as ImagePicker from 'expo-image-picker';
 import { GuideMenuModal } from '../components/menu/GuideMenuModal';
 import { ActionSheetIOS } from 'react-native';
+import { Video } from 'expo-av';
 
 export default function Home() {
   const router = useRouter();
@@ -429,13 +430,19 @@ const displayedHistory = filteredByDate.slice(0, displayCount);
       >
         <View style={styles.historyLeft}>
           {item.image_url ? (
-            <Image 
-              source={{ uri: item.image_url }} 
-              style={styles.thumbnail}
-            />
-          ) : (
-            <View style={styles.thumbnail} />
-          )}
+  item.analysis_type === 'video' ? (
+    <View style={[styles.thumbnail, { backgroundColor: '#E0E0E0', justifyContent: 'center', alignItems: 'center' }]}>
+      <Ionicons name="videocam" size={24} color="#666" />
+    </View>
+  ) : (
+    <Image 
+      source={{ uri: item.image_url }} 
+      style={styles.thumbnail}
+    />
+  )
+) : (
+  <View style={styles.thumbnail} />
+)}
           
           <View style={styles.historyInfo}>
             <View style={styles.historyTitleRow}>
@@ -444,8 +451,11 @@ const displayedHistory = filteredByDate.slice(0, displayCount);
                 item.is_deepfake ? styles.dangerDot : styles.safeDot
               ]} />
               <Text style={styles.historyItemTitle}>
-                {item.is_deepfake ? '수상한 딥페이크' : '안전한 이미지'}
-              </Text>
+  {item.is_deepfake 
+    ? '수상한 딥페이크' 
+    : `안전한 ${item.analysis_type === 'video' ? '영상' : '이미지'}`
+  }
+</Text>
             </View>
             <Text style={styles.historyItemSubtitle}>자세히 보기</Text>
             <Text style={styles.historyItemDate}>

@@ -18,6 +18,7 @@ import { ReportButton } from '../../components/report/ReportButton';
 import { ReportModal } from '../../components/report/ReportModal';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';  // ✅ 추가
+import { Video, ResizeMode } from 'expo-av';
 
 const { width } = Dimensions.get('window');
 
@@ -139,15 +140,23 @@ export default function DetectionResult() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* 업로드한 이미지 */}
         <View style={styles.imageContainer}>
-          <Image 
-            source={{ uri: imageUri }} 
-            style={styles.uploadedImage}
-            resizeMode="cover"
-          />
-        </View>
-
+  {mediaType === 'video' ? (
+    <Video
+      source={{ uri: imageUri }}
+      style={styles.uploadedImage}
+      useNativeControls
+      resizeMode={ResizeMode.CONTAIN}
+      shouldPlay={false}
+    />
+  ) : (
+    <Image 
+      source={{ uri: imageUri }} 
+      style={styles.uploadedImage}
+      resizeMode="cover"
+    />
+  )}
+</View>
         {/* 결과 멘트 */}
         <View style={styles.messageContainer}>
           <Text style={styles.messageTitle}>

@@ -10,6 +10,7 @@ import { ImageUploader } from '../../components/deepfake/ImageUploader';
 import { DetectionLoadingModal } from '../../components/deepfake/DetectionLoadingModal';
 import { DetectionResultModal } from '../../components/deepfake/DetectionResultModal';
 import { analyzeVideo } from '../../services/deepfakeApi';
+import { analyzeImage } from '../../services/deepfakeApi';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function GroupDeepfakeDetection() {
@@ -38,7 +39,7 @@ export default function GroupDeepfakeDetection() {
     
     try {
       // 백엔드 API 호출 (영상 분석)
-      const result = await analyzeVideo(selectedImage.uri, token);
+      const result = await analyzeImage(selectedImage.uri, token);
       
       console.log('📦 API 응답 전체:', result);
       
@@ -136,7 +137,7 @@ export default function GroupDeepfakeDetection() {
           isLoading={isLoading}
           onPickImage={pickImageFromGallery}
           iconSource={require('../../assets/images/icons/upload-camera-purple.png')}
-          label="이미지/영상 업로드"
+          label="이미지 업로드"
           iconBg="#EFE7FF"
         />
 

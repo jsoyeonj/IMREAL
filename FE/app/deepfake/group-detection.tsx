@@ -20,6 +20,7 @@ export default function GroupDeepfakeDetection() {
   const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
   const [detectionResult, setDetectionResult] = useState<boolean>(true);
+  const [faceResults, setFaceResults] = useState([]); // ✅ 얼굴 결과 저장
 
   const handleDetection = async () => {
     if (!selectedImage) return;
@@ -39,18 +40,27 @@ export default function GroupDeepfakeDetection() {
       // 백엔드 API 호출 (영상 분석)
       const result = await analyzeVideo(selectedImage.uri, token);
       
+      console.log('📦 API 응답 전체:', result);
+      
       if (result.success) {
-        const isSafe = result.analysisResult === 'safe';
-        setDetectionResult(isSafe);
+        // ✅ 얼굴 결과 저장
+        setFaceResults(result.faceResults || []);
         
+        // ✅ 평균 딥페이크 확률로 안전 여부 판단
+        const faceScores = result.faceResults || [];
+        const avgFakeRate = faceScores.length > 0 
+          ? faceScores.reduce((sum, face) => sum + (face.rate || 0), 0) / faceScores.length 
+          : 0;
+        const isSafe = avgFakeRate < 0.5;
+        
+        setDetectionResult(isSafe);
         setShowLoadingModal(false);
         setShowResultModal(true);
         
         console.log('✅ 그룹 분석 완료:', {
           isSafe,
-          confidence: result.confidenceScore,
-          peopleCount: result.detectionDetails?.length || 0,
-          details: result.detectionDetails
+          faceCount: result.faceCount,
+          faceResults: result.faceResults
         });
       } else {
         setShowLoadingModal(false);
@@ -75,11 +85,13 @@ export default function GroupDeepfakeDetection() {
   };
 
   const handleViewDetail = () => {
+    // ✅ 얼굴 결과와 함께 result 페이지로 이동
     router.push({
       pathname: '/deepfake/result',
       params: {
         imageUri: selectedImage?.uri || '',
-        isSafe: detectionResult.toString(),
+        mediaType: 'image', // 또는 'video'
+        faceResults: JSON.stringify(faceResults), // ✅ 얼굴 결과 전달
       },
     });
   };

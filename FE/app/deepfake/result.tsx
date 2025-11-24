@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ReportButton } from '../../components/report/ReportButton';
 import { ReportModal } from '../../components/report/ReportModal';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';  // ✅ 추가
+import * as FileSystem from 'expo-file-system';
 import { Video, ResizeMode } from 'expo-av';
 
 const { width } = Dimensions.get('window');
@@ -28,12 +28,12 @@ export default function DetectionResult() {
   
   // 파라미터로 받은 데이터
   const imageUri = params.imageUri as string;
-  const isSafe = params.isSafe === 'true';
   const faceResultsStr = params.faceResults as string;
   const mediaType = params.mediaType as string || 'image';
   
   // ✅ 얼굴 결과 파싱
   const [faceResults, setFaceResults] = useState([]);
+  const [isSafe, setIsSafe] = useState(true);
   
   // ✅ 실제 데이터 기반 그래프 데이터
   const [graphData, setGraphData] = useState({ fake: 0, real: 0 });
@@ -55,10 +55,14 @@ export default function DetectionResult() {
         // ✅ 수정된 확률 계산 로직
         if (parsed && parsed.length > 0) {
           // 모든 얼굴의 평균 딥페이크 확률 계산
-          const avgFakeRate = parsed.reduce((sum, face) => sum + face.rate, 0) / parsed.length;
+          const avgFakeRate = parsed.reduce((sum, face) => sum + (face.rate || 0), 0) / parsed.length;
           
           const fakePercentage = Math.round(avgFakeRate * 100);
           const realPercentage = 100 - fakePercentage;
+          
+          // ✅ 안전 여부 판단 (평균 딥페이크 확률이 50% 이상이면 위험)
+          const calculatedIsSafe = avgFakeRate < 0.5;
+          setIsSafe(calculatedIsSafe);
           
           setGraphData({ fake: fakePercentage, real: realPercentage });
           
@@ -66,7 +70,8 @@ export default function DetectionResult() {
             totalFaces: parsed.length,
             avgFakeRate: avgFakeRate,
             fake: fakePercentage,
-            real: realPercentage
+            real: realPercentage,
+            isSafe: calculatedIsSafe
           });
         }
       } catch (e) {
@@ -75,9 +80,9 @@ export default function DetectionResult() {
     } else {
       console.warn('⚠️ faceResultsStr가 없습니다');
     }
-  }, [isSafe, faceResultsStr]);
+  }, [faceResultsStr]);
 
-  // ✅ 이미지 공유 함수 추가
+  // ✅ 이미지 공유 함수
   const handleShareImage = async () => {
     if (!imageUri) {
       Alert.alert('오류', '공유할 이미지가 없습니다.');
@@ -141,22 +146,23 @@ export default function DetectionResult() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.imageContainer}>
-  {mediaType === 'video' ? (
-    <Video
-      source={{ uri: imageUri }}
-      style={styles.uploadedImage}
-      useNativeControls
-      resizeMode={ResizeMode.CONTAIN}
-      shouldPlay={false}
-    />
-  ) : (
-    <Image 
-      source={{ uri: imageUri }} 
-      style={styles.uploadedImage}
-      resizeMode="cover"
-    />
-  )}
-</View>
+          {mediaType === 'video' ? (
+            <Video
+              source={{ uri: imageUri }}
+              style={styles.uploadedImage}
+              useNativeControls
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay={false}
+            />
+          ) : (
+            <Image 
+              source={{ uri: imageUri }} 
+              style={styles.uploadedImage}
+              resizeMode="cover"
+            />
+          )}
+        </View>
+
         {/* 결과 멘트 */}
         <View style={styles.messageContainer}>
           <Text style={styles.messageTitle}>
@@ -187,7 +193,7 @@ export default function DetectionResult() {
                     {face.is_deepfake ? '딥페이크' : '진짜'}
                   </Text>
                   <Text style={styles.faceConfidence}>
-                    신뢰도: {(face.rate * 100).toFixed(1)}%
+                    신뢰도: {((face.rate || 0) * 100).toFixed(1)}%
                   </Text>
                 </View>
                 
@@ -242,12 +248,12 @@ export default function DetectionResult() {
         )}
       </ScrollView>
 
-      {/* 신고 모달 - ✅ handleShareImage 함수 연결 */}
+      {/* 신고 모달 */}
       <ReportModal
         visible={showReportModal}
         onClose={() => {
           setShowReportModal(false);
-          router.push('/home');  // ✅ 홈으로 이동 추가
+          router.push('/home');
         }}
         onDownloadImage={handleShareImage}
       />

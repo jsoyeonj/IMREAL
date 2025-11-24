@@ -11,50 +11,47 @@ class ProtectionService:
         self.fastapi_url = settings.FASTAPI_WATERMARK_URL
         self.timeout = 600  # 10분
     
+# BE/protection/services.py
+
     def protect_image(self, s3_url, protection_type='both', watermark_text='IMREAL'):
-        """
-        이미지 보호 처리
-        
-        Args:
-            s3_url: S3 URL
-            protection_type: 'noise', 'watermark', 'both'
-            watermark_text: 워터마크에 삽입할 텍스트
-        """
+        """이미지 보호 처리"""
         start_time = time.time()
         
-        if not self.check_health():
-            print("⚠️ AI 서버 없음 - Mock 데이터 반환")
-            return self._get_mock_protection_response(start_time)
+        try:
+            if not self.check_health():
+                print("⚠️ AI 서버 없음 - Mock 데이터 반환")
+                return self._get_mock_protection_response(start_time)
+            
+            # ✅ 워터마크 1번만 호출
+            result = self._call_protection_api(s3_url, 'Watermark', watermark_text)
+            
+            processing_time = int((time.time() - start_time) * 1000)
+            
+            if result:
+                return {
+                    'success': True,
+                    'results': [result],
+                    'processing_time': processing_time
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': '보호 처리 중 오류가 발생했습니다.',
+                    'processing_time': processing_time
+                }
         
-        results = []
-        
-        # Noise 처리
-        if protection_type in ['noise', 'both']:
-            noise_result = self._call_protection_api(s3_url, 'Noise', watermark_text)
-            if noise_result:
-                results.append(noise_result)
-        
-        # Watermark 처리
-        if protection_type in ['watermark', 'both']:
-            watermark_result = self._call_protection_api(s3_url, 'Watermark', watermark_text)
-            if watermark_result:
-                results.append(watermark_result)
-        
-        processing_time = int((time.time() - start_time) * 1000)
-        
-        if results:
-            return {
-                'success': True,
-                'results': results,
-                'processing_time': processing_time
-            }
-        else:
+        except Exception as e:
+            print(f"❌ protect_image 에러: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            
+            processing_time = int((time.time() - start_time) * 1000)
             return {
                 'success': False,
-                'error': '보호 처리 중 오류가 발생했습니다.',
+                'error': f'처리 중 오류: {str(e)}',
                 'processing_time': processing_time
             }
-    
+        
     def protect_video(self, s3_url, protection_type='both', watermark_text='IMREAL'):
         """영상 보호 (이미지와 동일한 로직)"""
         return self.protect_image(s3_url, protection_type, watermark_text)

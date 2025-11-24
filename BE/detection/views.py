@@ -257,7 +257,12 @@ class AnalysisRecordListView(generics.ListAPIView):
     serializer_class = AnalysisRecordListSerializer
     
     def get_queryset(self):
-        queryset = AnalysisRecord.objects.filter(user=self.request.user)
+        # Zoom 캡처 제외
+        queryset = AnalysisRecord.objects.filter(
+            user=self.request.user
+        ).exclude(
+            analysis_type='zoom'
+        )
         
         # 필터링
         analysis_type = self.request.query_params.get('type', None)

@@ -76,24 +76,14 @@ export const FAQ_DATA = [
     category: '딥페이크 감지 관련',
     questions: [
       {
-        question: '딥페이크 감지 정확도는 얼마나 되나요?',
-        answer:
-          'IMREAL은 다중 인물이 등장하는 이미지·영상 환경에서도 높은 정확도로 딥페이크를 탐지하도록 설계되었습니다. 내부 테스트 기준으로 90% 이상 수준의 탐지 성능을 목표로 하고 있으며, 해상도·조명·사용된 딥페이크 생성 기법에 따라 결과가 달라질 수 있습니다.',
-      },
-      {
         question: '어떤 종류의 딥페이크를 감지할 수 있나요?',
         answer:
           '정지 이미지, 짧은 영상, 화상회의 화면 캡처 등 대부분의 이미지·영상 기반 딥페이크를 대상으로 합니다. 얼굴 합성, 표정·입 모양 조작, 완전히 생성된 가짜 인물 이미지 등 다양한 유형을 지원하며, 한 화면에 여러 명이 있는 경우에도 인물별로 따로 분석합니다.',
       },
       {
-        question: '검사 결과가 “의심” 또는 신뢰도가 낮게 나오면 어떻게 하나요?',
-        answer:
-          '신뢰도가 중간(예: 50~70점) 수준이거나 “의심”으로 표시된 경우, 촬영 환경과 이미지 품질을 먼저 확인해 주세요. 같은 인물의 다른 각도·다른 프레임을 추가로 검사하고, 화상회의라면 실시간 감시 기능을 함께 사용하는 것이 좋습니다. 여러 결과를 종합해 판단하고, 조금이라도 위험하다고 느껴지면 신고 기능을 활용해 주세요.',
-      },
-      {
         question: '실시간 화상회의에서도 딥페이크를 감지할 수 있나요?',
         answer:
-          '네. IMREAL은 Zoom/Teams/Meet 등의 화면을 주기적으로 캡처해, 참여자 얼굴을 분석하는 실시간 감시 기능을 제공합니다. 눈 깜빡임 패턴, 입 모양과 음성의 싱크, 피부 텍스처·조명·대칭성 등 여러 요소를 종합해 딥페이크 가능성을 평가하며, 위험도가 높다고 판단되면 즉시 경고를 표시합니다.',
+          '네. IMREAL은 웹사이트를 통해 Zoom/Teams/Meet 등의 화면을 주기적으로 캡처해, 참여자 얼굴을 분석하는 실시간 감시 기능을 제공합니다. 눈 깜빡임 패턴, 입 모양과 음성의 싱크, 피부 텍스처·조명·대칭성 등 여러 요소를 종합해 딥페이크 가능성을 평가하며, 위험도가 높다고 판단되면 즉시 경고를 표시합니다.',
       },
     ],
   },
@@ -135,16 +125,6 @@ export const FAQ_DATA = [
         answer:
           '이미지를 앱에서 선택하면, AI 분석을 위해 암호화된 통신으로 백엔드 서버에 전송됩니다. 서버에서는 분석에 필요한 동안에만 원본 파일을 임시 저장한 뒤, 처리가 끝나면 스토리지에서 자동 삭제합니다. 분석 결과(신뢰도, 판정, 분석 시간 등)만 데이터베이스에 남아 “내 탐지 기록” 화면에서 조회할 수 있습니다.',
       },
-      {
-        question: '분석 히스토리는 얼마나 보관되나요?',
-        answer:
-          '탐지 결과·보호 처리 이력·신고 기록 등은 데이터베이스에 안전하게 저장되며, 앱 설정에서 자동 삭제 기간을 선택할 수 있습니다. 사용자는 언제든지 개별 기록을 직접 삭제할 수 있고, 일정 기간이 지나면 기록을 일괄 삭제하도록 설정하는 것도 가능합니다.',
-      },
-      {
-        question: '앱 사용료는 얼마인가요?',
-        answer:
-          '현재 대회·연구용 버전은 무료로 제공되며, 기본적인 이미지·영상 검사 및 보호 기능을 제한 없이 사용하실 수 있습니다. 향후 기업·기관을 위한 화상회의 전용 감시 기능 등 고급 기능은 별도 서비스로 제공될 수 있으며, 정식 서비스 단계에서 상세 요금제와 이용 조건을 안내할 예정입니다.',
-      },
     ],
   },
 ];
@@ -153,7 +133,7 @@ export const APP_ABOUT_DATA = {
   appInfo: {
     name: 'IMREAL (I\'m Real)',
     version: '1.0.0',
-    lastUpdate: '2024년 11월',
+    lastUpdate: '2025년 11월',
     platforms: 'Android, iOS',
   },
   mission: {
@@ -187,8 +167,8 @@ export const APP_ABOUT_DATA = {
     description:
       'IMREAL은 전남대학교 인공지능융합학과·소프트웨어공학과 학생 5인으로 구성된 팀이 개발했습니다. 팀장은 딥페이크 탐지·보호용 AI 알고리즘을 설계하고, 나머지 팀원들이 모바일 앱 프론트엔드, Django/FastAPI 기반 백엔드, 데이터베이스, 디자인 및 결과 시각화를 분담하여 하나의 통합 시스템으로 완성했습니다.',
     contact: {
-      email: 'support@imreal-app.com',
-      github: 'github.com/imreal-app',
+      email: 'kkimkdyk@naver.com',
+      github: 'https://github.com/jsoyeonj/IMREAL.git',
     },
   },
   tech: {
@@ -221,7 +201,7 @@ export const APP_ABOUT_DATA = {
   thanks: {
     title: '감사의 말',
     message:
-      'IMREAL 개발과 연구에 도움을 주신 지도교수님, 베타 테스트에 참여해 주신 모든 사용자, 그리고 딥페이크 탐지·보호 기술 발전을 위해 노력하는 국내외 연구 커뮤니티와 오픈소스 개발자 분들께 깊이 감사드립니다. 또한 2025 빛가람 에너지밸리 소프트웨어 작품 경진대회 출품 경험을 통해 IMREAL의 완성도를 한층 더 높일 수 있었습니다.',
+      'IMREAL 개발과 연구에 도움을 주신 지도교수님, 그리고 딥페이크 탐지·보호 기술 발전을 위해 노력하는 국내외 연구 커뮤니티와 오픈소스 개발자 분들께 깊이 감사드립니다. 또한 2025 빛가람 에너지밸리 소프트웨어 작품 경진대회 출품 경험을 통해 IMREAL의 완성도를 한층 더 높일 수 있었습니다.',
   },
 };
 
@@ -244,59 +224,6 @@ export const USEFUL_LINKS_DATA = [
         title: '경찰청 사이버안전국',
         url: 'https://ecrm.police.go.kr',
         description: '디지털 성범죄·사이버 사기 등 형사 사건 신고 및 상담',
-      },
-    ],
-  },
-  {
-    category: '딥페이크 관련 공식 기관',
-    subcategory: '국제 기관',
-    links: [
-      {
-        title: 'Partnership on AI',
-        url: 'https://partnershiponai.org',
-        description: 'AI 윤리·안전·거버넌스를 다루는 국제 협력 기구',
-      },
-      {
-        title: 'DARPA Media Forensics',
-        url: 'https://www.darpa.mil/program/media-forensics',
-        description: '미디어 조작 탐지(Forensics) 기술 관련 연구 프로그램',
-      },
-    ],
-  },
-  {
-    category: '교육 및 학습 자료',
-    subcategory: 'YouTube 채널/강의',
-    links: [
-      {
-        title: '"딥페이크의 모든 것 - 기술과 대응"',
-        url: '',
-        description: '딥페이크의 원리·피해 사례·예방 방법을 다루는 한국어 교육 콘텐츠 (추가 예정 링크)',
-      },
-      {
-        title: '"How to Spot Deepfakes" - MIT Media Lab',
-        url: '',
-        description: '딥페이크를 식별하기 위한 시각적 단서와 체크 포인트를 소개하는 영어 강의 (추가 예정 링크)',
-      },
-    ],
-  },
-  {
-    category: '딥페이크 탐지 도구',
-    subcategory: '탐지 도구',
-    links: [
-      {
-        title: 'Microsoft Video Authenticator',
-        url: '',
-        description: '일부 영상 콘텐츠의 조작 여부를 분석하는 마이크로소프트 연구 도구 (참고용 리소스)',
-      },
-      {
-        title: 'Deepware Scanner',
-        url: 'https://deepware.ai',
-        description: '업로드한 영상에서 딥페이크 여부를 분석하는 온라인 스캔 서비스',
-      },
-      {
-        title: 'Sensity AI Platform',
-        url: '',
-        description: '전 세계 온라인 플랫폼에서 딥페이크·조작 영상 확산을 모니터링하는 기업용 솔루션 (참고용 리소스)',
       },
     ],
   },
@@ -332,22 +259,6 @@ export const USEFUL_LINKS_DATA = [
     ],
   },
   {
-    category: '뉴스 및 정보 사이트',
-    subcategory: '영어 리소스',
-    links: [
-      {
-        title: 'MIT Technology Review - AI Section',
-        url: '',
-        description: 'AI·딥페이크·디지털 위조 관련 심층 분석 기사 모음 (추가 예정 링크)',
-      },
-      {
-        title: 'The Verge - Deepfakes Tag',
-        url: '',
-        description: '딥페이크와 관련된 최신 뉴스·사례·논쟁을 다루는 기사 모음 (추가 예정 링크)',
-      },
-    ],
-  },
-  {
     category: '법률 및 권리 보호',
     subcategory: '',
     links: [
@@ -357,30 +268,9 @@ export const USEFUL_LINKS_DATA = [
         description: '저작권·초상권 관련 상담 및 분쟁 조정 안내',
       },
       {
-        title: '디지털성범죄피해자지원센터',
-        url: 'https://www.dsvc.kr',
-        description: '딥페이크를 포함한 디지털 성범죄 피해 신고·삭제 지원 (전화: 02-735-8994)',
-      },
-      {
         title: '대한법률구조공단',
         url: 'https://www.klac.or.kr',
         description: '경제적 약자를 위한 무료·저비용 법률 상담 및 소송 지원',
-      },
-    ],
-  },
-  {
-    category: '기술 문서 및 논문',
-    subcategory: '',
-    links: [
-      {
-        title: 'arXiv.org - Deepfake Detection Papers',
-        url: '',
-        description: '최신 딥페이크 탐지·방지 연구 논문 사전 인쇄본 모음 (검색 후 열람)',
-      },
-      {
-        title: 'Papers With Code - Deepfakes',
-        url: 'https://paperswithcode.com',
-        description: '딥페이크 관련 연구 코드·벤치마크·리더보드를 한 번에 확인할 수 있는 사이트',
       },
     ],
   },

@@ -210,29 +210,6 @@ export default function DetectionResultScreen() {
               {getResultText()}
             </Text>
           </View>
-
-          <View style={styles.confidenceContainer}>
-            <Text style={styles.confidenceLabel}>신뢰도</Text>
-            <Text 
-              style={[
-                styles.confidenceScore, 
-                { color: getConfidenceColor(parseFloat(record.confidence_score)) }
-              ]}
-            >
-              {parseFloat(record.confidence_score).toFixed(1)}%
-            </Text>
-          </View>
-
-          <View style={styles.progressBarContainer}>
-            <View 
-              style={{
-                height: 8,
-                width: `${parseFloat(record.confidence_score)}%`,
-                borderRadius: 4,
-                backgroundColor: getConfidenceColor(parseFloat(record.confidence_score))
-              } as any}
-            />
-          </View>
         </View>
 
         {/* 이미지 표시 */}
@@ -313,7 +290,7 @@ export default function DetectionResultScreen() {
                     </Text>
                   </View>
                   <Text style={styles.personConfidence}>
-                    신뢰도: {confidenceValue.toFixed(1)}%
+                    deepfake: {confidenceValue.toFixed(1)}%
                   </Text>
                   {imageUrl && (
                     <Image 
@@ -415,26 +392,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     marginTop: 12,
-  },
-  confidenceContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  confidenceLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  confidenceScore: {
-    fontSize: 32,
-    fontWeight: '800',
-  },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 4,
-    overflow: 'hidden',
   },
   imageSection: {
     marginBottom: 20,

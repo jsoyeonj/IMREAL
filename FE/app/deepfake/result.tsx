@@ -193,7 +193,7 @@ export default function DetectionResult() {
                     {face.is_deepfake ? '딥페이크' : '진짜'}
                   </Text>
                   <Text style={styles.faceConfidence}>
-                    신뢰도: {((face.rate || 0) * 100).toFixed(1)}%
+                    deepfake: {((face.rate || 0) * 100).toFixed(1)}%
                   </Text>
                 </View>
                 

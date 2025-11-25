@@ -19,7 +19,7 @@ import { getAnalysisRecordDetail } from '../../services/deepfakeApi';
 import { ReportModal } from '../../components/report/ReportModal';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
-
+import { Video, ResizeMode } from 'expo-av';
 // ✅ 타입 정의
 interface DetectionDetail {
   person_id?: number;
@@ -96,14 +96,18 @@ export default function DetectionResultScreen() {
   };
 
   const getResultText = () => {
-    if (!record) return '';
-    switch (record.analysis_result) {
-      case 'safe': return '안전한 이미지';
-      case 'suspicious': return '의심스러운 이미지';
-      case 'deepfake': return '딥페이크 감지';
-      default: return '분석 완료';
-    }
-  };
+  if (!record) return '';
+  
+  // 영상 vs 이미지 구분
+  const mediaType = record.analysis_type === 'video' ? '영상' : '이미지';
+  
+  switch (record.analysis_result) {
+    case 'safe': return `안전한 ${mediaType}`;
+    case 'suspicious': return `의심스러운 ${mediaType}`;
+    case 'deepfake': return '딥페이크 감지';
+    default: return '분석 완료';
+  }
+};
 
   const getConfidenceColor = (score: number) => {
     if (score >= 80) return '#2E7D32';
@@ -212,17 +216,30 @@ export default function DetectionResultScreen() {
           </View>
         </View>
 
-        {/* 이미지 표시 */}
+        {/* 이미지/영상 썸네일 표시 */}
         {record.image_url && (
-          <View style={styles.imageSection}>
-            <Text style={styles.sectionTitle}>분석 이미지</Text>
-            <Image 
-              source={{ uri: record.image_url }} 
-              style={styles.resultImage}
-              resizeMode="contain"
-            />
-          </View>
-        )}
+  <View style={styles.imageSection}>
+    <Text style={styles.sectionTitle}>
+      {record.analysis_type === 'video' ? '분석 영상' : '분석 이미지'}
+    </Text>
+    
+    {record.analysis_type === 'video' ? (
+      <Video
+        source={{ uri: record.image_url }}
+        style={styles.resultImage}
+        useNativeControls
+        resizeMode={ResizeMode.CONTAIN}
+        shouldPlay={false}
+      />
+    ) : (
+      <Image 
+        source={{ uri: record.image_url }} 
+        style={styles.resultImage}
+        resizeMode="contain"
+      />
+    )}
+  </View>
+)}
 
         {/* 히트맵 표시 */}
         {record.heatmap_url && (

@@ -1,50 +1,24 @@
-# Welcome to your Expo app 👋
+# IMREAL Frontend
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+> 실시간 화상회의 딥페이크 탐지 웹 애플리케이션
 
-## Get started
+Zoom 등 화상 면접 화면을 주기적으로 캡처해 딥페이크 여부를 분석하고,
+의심 인물이 감지되면 실시간으로 경고를 제공하는 React 기반 프론트엔드입니다.
 
-1. Install dependencies
+## 주요 기능
 
-   ```bash
-   npm install
-   ```
+- **실시간 화면 캡처**: `getDisplayMedia` API로 Zoom 화면을 5초마다 자동 캡처
+- **딥페이크 탐지 연동**: 캡처 이미지를 백엔드로 전송, AI 서버가 30초 주기로 분석
+- **실시간 경고**: 딥페이크 감지 시 즉시 알림 표시 (이전 알림 자동 교체로 UI 정돈)
+- **세션 관리**: 면접 세션 시작·종료 및 캡처 통계 집계
+- **탐지 기록 조회**: 세션별 안전/의심 판정과 신뢰도 점수를 기록으로 확인
+- **인증 & 라우트 보호**: 토큰 기반 로그인/회원가입, ProtectedRoute로 접근 제어
 
-2. Start the app
+## 기술 스택
 
-   ```bash
-   npx expo start
-   ```
+- **React 18** + **Vite 5**
+- **React Router DOM 6** (SPA 라우팅 / 라우트 가드)
+- **Browser APIs**: Screen Capture, Canvas, Notification
+- 토큰 기반 인증 (Django REST API 연동)
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 프로젝트 구조
